@@ -93,7 +93,24 @@ dzienniczek login jwt --tenant TENANT --token JWT
 dzienniczek login librus --username EMAIL --password PASSWORD
 ```
 
-## Usage
+## Quick start
+
+Check the installation and local configuration without contacting the school service:
+
+```sh
+dzienniczek doctor --format table
+dzienniczek env --format table
+```
+
+Log in once, then query the active student:
+
+```sh
+dzienniczek login --non-interactive
+dzienniczek account list
+dzienniczek dashboard
+```
+
+## Everyday usage
 
 ```sh
 dzienniczek dashboard
@@ -124,13 +141,22 @@ dzienniczek help
 dzienniczek capabilities --json
 ```
 
-## Agent use
+## AI agents and automation
 
-Non-interactive output defaults to JSON. Explicit automation form:
+Use this invocation pattern for Codex, Claude Code, OpenClaw, Hermes, scripts, and CI:
 
 ```sh
-dzienniczek grades --json --compact
+dzienniczek COMMAND --json --compact --non-interactive
 ```
+
+Start an integration by reading [`docs/AI_USAGE.txt`](docs/AI_USAGE.txt). It contains a copy-paste agent policy, safe configuration instructions, the output contract, command discovery, mutation rules, and examples. Agents should discover supported operations at runtime:
+
+```sh
+dzienniczek doctor --json --compact --non-interactive
+dzienniczek capabilities --json --compact --non-interactive
+```
+
+`--non-interactive` guarantees that missing input produces an error instead of a prompt. A piped invocation defaults to JSON, but agents should request JSON explicitly. Successful results go to stdout; errors go to stderr.
 
 Exit codes:
 
@@ -145,6 +171,22 @@ Exit codes:
 | 10 | Internal failure |
 
 Errors are emitted as JSON on stderr in non-interactive mode. Secrets are never included in normal output.
+
+## Documentation
+
+- [Complete command reference](docs/cli.md)
+- [AI agent and automation guide](docs/AI_USAGE.txt)
+- [Security policy](SECURITY.md)
+
+## Troubleshooting
+
+```sh
+dzienniczek doctor --json
+dzienniczek env --json
+dzienniczek profile show --json
+```
+
+Add `--debug` only while diagnosing a failure; traces may contain provider metadata. Use `--timeout 60` on slow networks. If the wrong child or school period is selected, use `account list`, `account use INDEX`, and `--period VALUE`.
 
 ## Security
 

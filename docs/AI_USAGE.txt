@@ -1,0 +1,166 @@
+DZIENNICZEK CLI — AI AGENT AND AUTOMATION GUIDE
+================================================
+
+Purpose
+-------
+Dzienniczek CLI gives terminal agents and scripts structured access to VULCAN,
+eduVULCAN, and Librus. This guide applies to Codex, Claude Code, OpenClaw,
+Hermes, CI jobs, and custom shell automation.
+
+Recommended invocation
+----------------------
+Always use:
+
+  dzienniczek COMMAND --json --compact --non-interactive
+
+Why:
+
+  --json              requests machine-readable output explicitly
+  --compact           avoids unnecessary output tokens
+  --non-interactive   fails instead of waiting for terminal input
+
+Add a bounded network timeout when appropriate:
+
+  dzienniczek grades --json --compact --non-interactive --timeout 60
+
+First-run configuration
+-----------------------
+1. Copy the template in the repository:
+
+     cp .env.example .env
+     chmod 600 .env
+
+2. Configure exactly one provider in .env. For eduVULCAN:
+
+     DZIENNICZEK_PROVIDER=eduvulcan
+     DZIENNICZEK_USERNAME=the-login
+     DZIENNICZEK_PASSWORD=the-password
+     DZIENNICZEK_PROFILE=default
+
+3. Check readiness without revealing secret values or contacting the provider:
+
+     dzienniczek env --json --compact --non-interactive
+     dzienniczek doctor --json --compact --non-interactive
+
+4. Log in and create the local profile:
+
+     dzienniczek login --json --compact --non-interactive
+
+5. Discover accounts and select one if needed:
+
+     dzienniczek account list --json --compact --non-interactive
+     dzienniczek account use 0 --json --compact --non-interactive
+
+The CLI automatically reads .env in the current directory. Use
+--env-file PATH for a different file, or injected DZIENNICZEK_* environment
+variables in CI. Process environment variables override .env values.
+
+Never read, print, summarize, copy, commit, upload, or return .env contents.
+Do not put passwords, PINs, JWTs, or tokens directly in agent prompts.
+
+Runtime discovery
+-----------------
+Do not guess command support. Query it:
+
+  dzienniczek capabilities --json --compact --non-interactive
+
+Use these local-only checks before a provider request:
+
+  dzienniczek version --json --compact --non-interactive
+  dzienniczek doctor --json --compact --non-interactive
+  dzienniczek profile show --json --compact --non-interactive
+
+Output and error contract
+-------------------------
+Successful JSON is written to stdout. Errors and diagnostics are written to
+stderr. In JSON mode an error has this shape:
+
+  {"ok":false,"error":"description","code":N}
+
+Exit codes:
+
+  0   success
+  2   invalid command or arguments
+  3   authentication failure
+  4   network failure or timeout
+  5   remote provider/API failure
+  6   local configuration failure
+  10  unexpected internal failure
+
+Parse stdout only when the exit code is 0. Treat unknown JSON fields as
+forward-compatible additions. Do not scrape human tables. Dates passed to
+--from and --to use YYYY-MM-DD and are inclusive.
+
+Safe agent policy (copy into agent instructions)
+-------------------------------------------------
+You may run read-only Dzienniczek CLI commands using:
+  --json --compact --non-interactive
+Run `dzienniczek capabilities --json --compact --non-interactive` before using
+an unfamiliar command. Never display or publish .env, the profile config,
+passwords, tokens, PINs, JWTs, private keys, or raw debug traces. Ask the user
+before running any mutating command. Never run credential deletion unless the
+user explicitly requests remote revocation and confirms the target. Check the
+process exit code before parsing stdout. Summarize school data minimally and do
+not expose one student's information to another person.
+
+Read-only workflow examples
+---------------------------
+Current grades:
+
+  dzienniczek grades --json --compact --non-interactive
+
+Grades for a selected pupil/profile:
+
+  dzienniczek grades --profile default --account 0 --json --compact --non-interactive
+
+Schedule for an exact range:
+
+  dzienniczek schedule --from 2026-09-01 --to 2026-09-07 --json --compact --non-interactive
+
+Upcoming work:
+
+  dzienniczek exams --json --compact --non-interactive
+  dzienniczek homework --json --compact --non-interactive
+
+Attendance and messages:
+
+  dzienniczek presence --json --compact --non-interactive
+  dzienniczek messages received --json --compact --non-interactive
+
+Human use
+---------
+For readable terminal output, request a table:
+
+  dzienniczek grades --format table
+  dzienniczek schedule --format table
+  dzienniczek doctor --format table
+
+When attached to a terminal, table output is the default. When stdout is piped,
+JSON is the default. Explicit --format is recommended in saved scripts.
+
+Mutating and destructive operations
+-----------------------------------
+These commands change local or remote state and require user intent:
+
+  login
+  logout
+  profile use / profile remove
+  account use
+  messages importance / messages status
+  push locale / push all / push set / push configure
+  credential delete
+
+Commands that remove data require --yes. `credential delete --yes` revokes the
+remote registered device and cannot be undone. `logout --yes` removes a local
+profile but does not revoke the device.
+
+Troubleshooting
+---------------
+1. Run `dzienniczek doctor --json --compact --non-interactive`.
+2. Run `dzienniczek env --json --compact --non-interactive`.
+3. Verify the selected profile and account with `profile show` and `account list`.
+4. Retry a slow provider with `--timeout 60`.
+5. Use `--debug` only for local diagnosis. Debug traces can contain provider
+   metadata and should not be pasted into public issues without review.
+
+See docs/cli.md for the complete command reference.

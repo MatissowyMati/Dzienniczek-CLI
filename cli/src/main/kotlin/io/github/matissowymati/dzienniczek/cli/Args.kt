@@ -6,7 +6,10 @@ class CliArgs(tokens: List<String>) {
     private val switches = linkedSetOf<String>()
 
     init {
-        val booleanOptions = setOf("json", "compact", "debug", "yes", "all", "brief", "hebe", "api", "no-store-password", "no-env", "help")
+        val booleanOptions = setOf(
+            "json", "compact", "debug", "yes", "all", "brief", "hebe", "api",
+            "no-store-password", "no-env", "non-interactive", "help"
+        )
         var index = 0
         var options = true
         while (index < tokens.size) {
@@ -39,7 +42,7 @@ class CliArgs(tokens: List<String>) {
     fun required(name: String, env: String? = null, secret: Boolean = false): String {
         value(name)?.takeIf { it.isNotBlank() }?.let { return it }
         env?.let { Env.get(it)?.takeIf(String::isNotBlank)?.let { found -> return found } }
-        val console = System.console()
+        val console = System.console().takeUnless { flag("non-interactive") }
         if (console != null) {
             val prompt = "${name.replace('-', ' ')}: "
             val entered = if (secret) console.readPassword(prompt)?.concatToString() else console.readLine(prompt)
@@ -51,6 +54,10 @@ class CliArgs(tokens: List<String>) {
 
     fun int(name: String, default: Int): Int = value(name)?.toIntOrNull()
         ?: if (value(name) == null) default else throw CliError("--$name must be an integer", Exit.USAGE)
+
+    fun positiveInt(name: String, default: Int): Int = int(name, default).also {
+        if (it <= 0) throw CliError("--$name must be greater than zero", Exit.USAGE)
+    }
 }
 
 object Exit {

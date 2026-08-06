@@ -31,7 +31,7 @@ fi
 cd "$project_dir"
 ./gradlew :cli:installDist --no-daemon
 
-version=1.0.0
+version=1.1.0
 target="$install_prefix/lib/dzienniczek-$version"
 mkdir -p "$install_prefix/lib" "$install_prefix/bin"
 if [ -e "$target" ]; then

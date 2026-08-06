@@ -22,7 +22,7 @@ import java.io.PrintWriter
 import java.io.StringWriter
 import kotlin.system.exitProcess
 
-const val CLI_VERSION = "1.0.0"
+const val CLI_VERSION = "1.1.0"
 
 fun main(raw: Array<String>) {
     val args = CliArgs(raw.toList())
@@ -62,7 +62,11 @@ private suspend fun execute(args: CliArgs) {
 
     val store = ConfigStore.create(args.value("config"))
     var config = store.load()
-    val client = createClient()
+    if (command == "doctor") {
+        emit(doctorStatus(store, config), args)
+        return
+    }
+    val client = createClient(args)
     client.use {
         when (command) {
             "config" -> emit(buildJsonObject { put("path", store.path.toString()) }, args)
@@ -107,16 +111,19 @@ private suspend fun execute(args: CliArgs) {
     }
 }
 
-private fun createClient() = HttpClient(CIO) {
+private fun createClient(args: CliArgs): HttpClient {
+    val timeout = args.positiveInt("timeout", 30) * 1_000L
+    return HttpClient(CIO) {
     followRedirects = true
     engine { https { trustManager = ProviderTls.trustManager } }
     install(HttpTimeout) {
-        requestTimeoutMillis = 30_000
-        connectTimeoutMillis = 20_000
-        socketTimeoutMillis = 30_000
+        requestTimeoutMillis = timeout
+        connectTimeoutMillis = timeout
+        socketTimeoutMillis = timeout
     }
     install(HttpCookies) { storage = AcceptAllCookiesStorage() }
     install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true; coerceInputValues = true }) }
+    }
 }
 
 private suspend fun login(provider: String, args: CliArgs, client: HttpClient): Profile = when (provider.lowercase()) {
@@ -283,6 +290,7 @@ private fun accountSummary(index: Int, account: Account) = buildJsonObject {
 
 private fun capabilities() = buildJsonObject {
     put("name", "dzienniczek"); put("version", CLI_VERSION); put("agentSafe", true)
+    put("documentation", "docs/AI_USAGE.txt")
     putJsonArray("providers") { listOf("vulcan", "eduvulcan", "eduvulcan-jwt", "librus").forEach(::add) }
     putJsonArray("commands") {
         listOf(
@@ -292,18 +300,62 @@ private fun capabilities() = buildJsonObject {
             "presence", "presence months", "presence subjects", "presence info", "messages received", "messages sent",
             "messages deleted", "message", "schedule", "schedule-extra", "school-info", "teachers", "timeslots",
             "trips", "events", "vacations", "push locale", "push all", "push set", "push configure",
-            "credential delete", "subjects", "users", "classrooms", "notices", "auto-login-token"
+            "credential delete", "subjects", "users", "classrooms", "notices", "auto-login-token", "doctor"
         ).forEach(::add)
+    }
+    putJsonArray("mutatingCommands") {
+        listOf("login", "logout", "profile use", "profile remove", "account use", "messages importance",
+            "messages status", "push locale", "push all", "push set", "push configure", "credential delete").forEach(::add)
     }
     putJsonObject("globalOptions") {
         put("--format", "json|table|plain"); put("--json", "alias for --format json"); put("--compact", "compact JSON")
         put("--profile", "stored profile"); put("--account", "account index, pupil ID, or name"); put("--period", "period ID or number")
         put("--from/--to", "YYYY-MM-DD inclusive date range"); put("--config", "config path override")
         put("--env-file", "dotenv path (default: .env)"); put("--no-env", "disable dotenv loading")
+        put("--non-interactive", "never prompt; fail when required input is missing")
+        put("--timeout", "positive network timeout in seconds (default: 30)")
+    }
+    putJsonObject("outputContract") {
+        put("stdout", "requested result only"); put("stderr", "errors and diagnostics only")
+        put("defaultWhenPiped", "json"); put("recommended", "--json --compact --non-interactive")
+        put("dates", "YYYY-MM-DD"); put("encoding", "UTF-8")
     }
     putJsonObject("exitCodes") {
         put("0", "success"); put("2", "usage"); put("3", "authentication"); put("4", "network"); put("5", "remote API")
         put("6", "local configuration"); put("10", "internal")
+    }
+}
+
+private fun doctorStatus(store: ConfigStore, config: ConfigData): JsonObject {
+    val javaVersion = System.getProperty("java.version").orEmpty()
+    val javaMajor = javaVersion.substringBefore('.').toIntOrNull() ?: 0
+    val provider = Env.inferredProvider()
+    val environmentReady = when (provider) {
+        "eduvulcan", "edu", "prometheus", "librus" -> Env.available("DZIENNICZEK_USERNAME") && Env.available("DZIENNICZEK_PASSWORD")
+        "vulcan", "hebe" -> Env.available("DZIENNICZEK_TOKEN") && Env.available("DZIENNICZEK_PIN") && Env.available("DZIENNICZEK_SYMBOL")
+        "jwt", "eduvulcan-jwt" -> Env.available("DZIENNICZEK_JWT") && Env.available("DZIENNICZEK_TENANT")
+        else -> false
+    }
+    val hasProfile = config.currentProfile?.let(config.profiles::containsKey) == true
+    return buildJsonObject {
+        put("ok", javaMajor >= 17 && (hasProfile || environmentReady))
+        put("version", CLI_VERSION)
+        putJsonObject("runtime") {
+            put("java", javaVersion); put("javaSupported", javaMajor >= 17)
+            put("os", System.getProperty("os.name")); put("arch", System.getProperty("os.arch"))
+        }
+        put("configPath", store.path.toString())
+        put("profiles", config.profiles.size)
+        config.currentProfile?.let { put("currentProfile", it) }
+        put("hasUsableProfile", hasProfile)
+        put("environmentProvider", provider)
+        put("environmentReadyForLogin", environmentReady)
+        put("envFileLoaded", Env.loadedPath != null)
+        putJsonArray("nextSteps") {
+            if (!hasProfile && environmentReady) add("Run: dzienniczek login --non-interactive")
+            if (!hasProfile && !environmentReady) add("Configure .env, then run: dzienniczek login --non-interactive")
+            if (hasProfile) add("Run: dzienniczek capabilities --json --compact")
+        }
     }
 }
 
@@ -348,10 +400,16 @@ private fun printHelp() = println(
 
     Agents:
       dzienniczek capabilities --json
-      dzienniczek COMMAND --json --compact
+      dzienniczek doctor --json
+      dzienniczek COMMAND --json --compact --non-interactive
       Secrets may use DZIENNICZEK_USERNAME, DZIENNICZEK_PASSWORD,
       DZIENNICZEK_TOKEN, DZIENNICZEK_PIN, DZIENNICZEK_SYMBOL and DZIENNICZEK_JWT.
       A local .env is loaded automatically and is never required in Git.
+
+    Global options:
+      --format json|table|plain   --profile NAME   --account VALUE
+      --from DATE --to DATE       --timeout SECONDS
+      --env-file PATH             --no-env         --non-interactive
 
     Run `dzienniczek capabilities --json` for the complete command inventory.
     """.trimIndent()

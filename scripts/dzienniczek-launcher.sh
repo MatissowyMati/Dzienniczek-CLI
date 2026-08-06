@@ -11,7 +11,7 @@ while [ -L "$launcher_path" ]; do
   esac
 done
 launcher_dir=$(CDPATH= cd -- "$(dirname -- "$launcher_path")" && pwd)
-launcher="$launcher_dir/../lib/dzienniczek-1.0.0/bin/dzienniczek"
+launcher="$launcher_dir/../lib/dzienniczek-1.1.0/bin/dzienniczek"
 
 if [ -n "${DZIENNICZEK_JAVA_HOME:-}" ]; then
   JAVA_HOME=$DZIENNICZEK_JAVA_HOME

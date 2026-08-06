@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.test.assertFailsWith
 
 class ArgsTest {
     @Test
@@ -20,5 +21,13 @@ class ArgsTest {
         val args = CliArgs(listOf("profile", "use", "--", "--odd-name"))
         assertEquals(listOf("profile", "use", "--odd-name"), args.words)
         assertFalse(args.flag("odd-name"))
+    }
+
+    @Test
+    fun parsesAgentOptionsAndValidatesTimeout() {
+        val args = CliArgs(listOf("doctor", "--non-interactive", "--timeout", "45"))
+        assertTrue(args.flag("non-interactive"))
+        assertEquals(45, args.positiveInt("timeout", 30))
+        assertFailsWith<CliError> { CliArgs(listOf("--timeout", "0")).positiveInt("timeout", 30) }
     }
 }

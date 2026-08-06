@@ -17,6 +17,8 @@ _dzienniczek() {
     'notes:list notes'
     'announcements:list announcements'
     'capabilities:print the machine-readable command inventory'
+    'doctor:check local runtime, configuration, and login readiness'
+    'env:show credential availability without exposing values'
   )
   _describe 'command' commands
 }

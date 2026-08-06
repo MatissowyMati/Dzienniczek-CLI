@@ -2,7 +2,7 @@ class Dzienniczek < Formula
   desc "Agent-friendly CLI for VULCAN, eduVULCAN and Librus"
   homepage "https://github.com/MatissowyMati/Dzienniczek-CLI"
   url "https://github.com/MatissowyMati/Dzienniczek-CLI.git", branch: "main"
-  version "1.0.0"
+  version "1.1.0"
   license "MIT"
 
   depends_on "openjdk@17"
@@ -18,6 +18,6 @@ class Dzienniczek < Formula
   end
 
   test do
-    assert_match "1.0.0", shell_output("#{bin}/dzienniczek version --format table")
+    assert_match "1.1.0", shell_output("#{bin}/dzienniczek version --format table")
   end
 end

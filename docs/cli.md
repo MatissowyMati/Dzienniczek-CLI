@@ -15,6 +15,8 @@
 | `--config PATH` | Override profile configuration path |
 | `--env-file PATH` | Load credentials from another dotenv file |
 | `--no-env` | Disable dotenv loading |
+| `--non-interactive` | Never prompt; fail if required input is missing |
+| `--timeout SECONDS` | Set the positive network timeout; default is 30 seconds |
 | `--debug` | Include diagnostic traces in JSON errors |
 
 The default date range is Monday through Sunday of the current week.
@@ -42,6 +44,14 @@ Check availability without printing values:
 ```sh
 dzienniczek env --json
 ```
+
+Check whether Java, credentials, and the active profile are ready:
+
+```sh
+dzienniczek doctor --json
+```
+
+`doctor` is local-only and does not log in or contact a provider. Its `ok` field is true when Java 17+ is available and either a usable stored profile or a complete login environment exists.
 
 ## Authentication
 
@@ -122,3 +132,15 @@ dzienniczek credential delete --yes
 ```
 
 Remote credential deletion cannot be undone. Local removal does not revoke the registered device unless `credential delete --yes` is used first.
+
+## Output contract
+
+- `--json` emits one valid JSON value to stdout.
+- `--compact` changes whitespace only.
+- Errors go to stderr as `{ "ok": false, "error": "...", "code": N }` in JSON mode.
+- Human-readable errors go to stderr and successful tables go to stdout.
+- Dates accepted by global range options use `YYYY-MM-DD`.
+- Output is UTF-8. Fields may be added in compatible releases; consumers should ignore unknown fields.
+- Exit code `0` means the command completed. The `doctor` command also has an `ok` field describing readiness.
+
+For AI integrations and safe automation conventions, read [AI_USAGE.txt](AI_USAGE.txt).

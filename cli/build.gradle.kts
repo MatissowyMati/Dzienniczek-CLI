@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "io.github.matissowymati.dzienniczek"
-version = "1.0.0"
+version = "1.1.0"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -47,7 +47,7 @@ distributions {
     main {
         contents {
             from("../completions") { into("completions") }
-            from("../docs/cli.md") { into("docs") }
+            from("../docs") { into("docs") }
             from("../LICENSE")
         }
     }
