@@ -1,0 +1,21 @@
+package io.github.matissowymati.dzienniczek.api.hebe
+
+open class DzienniczekApiException(message: String) : Exception(message)
+
+class FailedRequestException(message: String) : DzienniczekApiException(message)
+class HttpUnsuccessfulStatusException(message: String) : DzienniczekApiException(message)
+class ExpiredTokenException(message: String) : DzienniczekApiException(message)
+class WrongPinException(message: String) : DzienniczekApiException(message)
+class WrongTokenException(message: String) : DzienniczekApiException(message)
+class UsedTokenException(message: String) : DzienniczekApiException(message)
+class InvalidHeaderException(message: String) : DzienniczekApiException(message)
+class MissingHeaderException(message: String) : DzienniczekApiException(message)
+class InvalidBodyModelException(message: String) : DzienniczekApiException(message)
+class InvalidSignatureException(message: String) : DzienniczekApiException(message)
+class CertificateNotFoundException(message: String) : DzienniczekApiException(message)
+class EntityNotFoundException(message: String) : DzienniczekApiException(message)
+class ConstraintViolationException(message: String) : DzienniczekApiException(message)
+class InvalidParameterValueException(message: String) : DzienniczekApiException(message)
+class MissingUnitSymbolException(message: String) : DzienniczekApiException(message)
+class InternalServerErrorException(message: String) : DzienniczekApiException(message)
+class ResponseInvalidContentTypeException : DzienniczekApiException("Invalid content type in response")

@@ -1,0 +1,17 @@
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Build and IDE output
+.gradle/
+.kotlin/
+**/build/
+.idea/
+*.iml
+.DS_Store
+local.properties
+
+# Local CLI state
+.dzienniczek/
+*.log
