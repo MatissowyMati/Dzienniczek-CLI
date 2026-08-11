@@ -5,7 +5,7 @@
 
 A standalone command-line client for Polish electronic school registers. It supports VULCAN, eduVULCAN, and Librus from Linux, macOS, and Windows through WSL. Output works equally well for people and shell-based agents such as Codex, Claude Code, OpenClaw, and Hermes.
 
-This is an independent CLI project. Its protocol implementation was initially derived from [szponciciel04/DzienniczekSzpontniczek](https://github.com/szponciciel04/DzienniczekSzpontniczek); that project is not bundled and remains a separate mobile application.
+This is an independent CLI project. Its protocol implementation was initially derived from [szponciciel04/DzienniczekSzpontniczek](https://github.com/szponciciel04/DzienniczekSzpontniczek) (support to Librus has been copyed from [Szkolny.eu](https://github.com/szkolny-eu/szkolny-android)); that project is not bundled and remains a separate mobile application.
 
 ## Features
 
