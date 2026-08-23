@@ -2,7 +2,9 @@ package io.github.matissowymati.dzienniczek.cli
 
 import io.github.matissowymati.dzienniczek.api.hebe.DzienniczekApiException
 import io.github.matissowymati.dzienniczek.api.hebe.EduVulcanApi
+import io.github.matissowymati.dzienniczek.api.hebe.ExpiredTokenException
 import io.github.matissowymati.dzienniczek.api.hebe.FailedRequestException
+import io.github.matissowymati.dzienniczek.api.hebe.UsedTokenException
 import io.github.matissowymati.dzienniczek.api.hebe.VulcanApi
 import io.github.matissowymati.dzienniczek.api.hebe.credentials.RsaCredential
 import io.github.matissowymati.dzienniczek.api.hebe.models.Account
@@ -438,7 +440,8 @@ internal fun classify(error: Throwable): Int {
     val name = error::class.qualifiedName.orEmpty()
     val message = error.message.orEmpty()
     return when {
-        "WrongPin" in name || "WrongToken" in name || "Invalid credentials" in message || "Login failed" in message ||
+        error is ExpiredTokenException || error is UsedTokenException ||
+            "WrongPin" in name || "WrongToken" in name || "Invalid credentials" in message || "Login failed" in message ||
             "Nieprawidłowe dane logowania" in message || "Logowanie nie powiodło się" in message ||
             message.contains("captcha", ignoreCase = true) -> Exit.AUTH
         error is FailedRequestException || "ktor" in name || "timeout" in message.lowercase() ||
