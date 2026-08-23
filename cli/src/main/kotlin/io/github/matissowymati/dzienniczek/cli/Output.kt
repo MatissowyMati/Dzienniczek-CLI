@@ -11,7 +11,7 @@ fun emit(element: JsonElement, args: CliArgs) {
     when (format) {
         "json" -> println((if (args.flag("compact")) compactJson else prettyJson).encodeToString(element))
         "table", "plain" -> printHuman(element)
-        else -> throw CliError("Unknown format '$format' (use json, table, or plain)", Exit.USAGE)
+        else -> throw CliError("Nieznany format '$format' (użyj json, table albo plain)", Exit.USAGE)
     }
 }
 
@@ -36,7 +36,7 @@ private fun printHuman(element: JsonElement) {
 
 private fun printRows(rows: JsonArray) {
     if (rows.isEmpty()) {
-        println("No results.")
+        println("Brak wyników.")
         return
     }
     if (rows.any { it !is JsonObject }) {

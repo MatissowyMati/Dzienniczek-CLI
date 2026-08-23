@@ -13,13 +13,13 @@ private const val HEBECE_APP_VERSION_CODE = "946"
 private const val HEBECE_API_BASE_URL = "https://lekcjaplus.vulcan.net.pl"
 
 /**
- * VULCAN Hebe CE API client. Registers via a list of JWT tokens.
+ * Klient API VULCAN Hebe CE. Rejestruje urządzenie za pomocą listy tokenów JWT.
  *
- * Usage:
- * 1. Create a credential: `RsaCredential.createNew("Android", "My Device")`
- * 2. Create the API: `EduVulcanApi(credential, httpClient)`
- * 3. Register: `api.registerByJwt(tokens, tenant)`
- * 4. Call any endpoint from [DzienniczekApi]
+ * Użycie:
+ * 1. Utwórz dane urządzenia: `RsaCredential.createNew("Android", "Moje urządzenie")`
+ * 2. Utwórz klienta API: `EduVulcanApi(credential, httpClient)`
+ * 3. Zarejestruj urządzenie: `api.registerByJwt(tokens, tenant)`
+ * 4. Wywołaj dowolny punkt końcowy z [DzienniczekApi].
  */
 class EduVulcanApi(
     credential: ICredential,
@@ -30,11 +30,11 @@ class EduVulcanApi(
 ) {
 
     /**
-     * Registers the device using a list of JWT tokens obtained from the VULCAN web portal.
+     * Rejestruje urządzenie za pomocą listy tokenów JWT uzyskanych z portalu VULCAN.
      *
-     * @param tokens List of JWT tokens
-     * @param tenant The school tenant symbol
-     * @return The REST URL assigned after successful registration
+     * @param tokens lista tokenów JWT
+     * @param tenant symbol instancji szkoły
+     * @return adres REST przypisany po udanej rejestracji
      */
     suspend fun registerByJwt(tokens: List<String>, tenant: String): String {
         val restUrl = "$HEBECE_API_BASE_URL/$tenant/api"

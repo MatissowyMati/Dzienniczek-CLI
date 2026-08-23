@@ -9,7 +9,7 @@ object POWCaptchaResolver {
         difficulty: Long,
         rounds: Int,
     ): String {
-        require(rounds >= 0) { "rounds must be non-negative" }
+        require(rounds >= 0) { "Liczba rund nie może być ujemna" }
         require(difficulty in 0..0xFFFF_FFFFL)
 
         val provider = CryptographyProvider.Default
@@ -64,7 +64,7 @@ object POWCaptchaResolver {
                 nonce++
             }
 
-            throw IllegalStateException("Failed to find nonce within 1e9 attempts")
+            throw IllegalStateException("Nie znaleziono wartości nonce w limicie 1e9 prób")
         }
 
         val results = LongArray(rounds)

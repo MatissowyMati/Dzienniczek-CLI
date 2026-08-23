@@ -22,7 +22,7 @@ open class DzienniczekApi(
     suspend fun getAccounts(pupilId: Int? = null): List<Account> {
         val envelope = vulcanHttpClient.request(
             method = "GET",
-            restUrl = credential.restUrl ?: error("restUrl not set – register first"),
+            restUrl = credential.restUrl ?: error("Nie ustawiono restUrl — najpierw zarejestruj urządzenie"),
             endpoint = "mobile/register/hebe",
             query = mapOf("mode" to 2),
             pupilId = pupilId
@@ -648,7 +648,7 @@ open class DzienniczekApi(
     suspend fun getTimeslots(pupilId: Int? = null): List<Timeslot> {
         val envelope = vulcanHttpClient.request(
             method = "GET",
-            restUrl = credential.restUrl ?: error("restUrl not set – register first"),
+            restUrl = credential.restUrl ?: error("Nie ustawiono restUrl — najpierw zarejestruj urządzenie"),
             endpoint = "mobile/dictionary/timeslot",
             query = mapOf("pupilId" to pupilId),
             pupilId = pupilId
@@ -757,7 +757,7 @@ open class DzienniczekApi(
         vulcanHttpClient.request(
             method = "POST",
             endpoint = "mobile/push/locale",
-            restUrl = credential.restUrl ?: error("restUrl not set – register first"),
+            restUrl = credential.restUrl ?: error("Nie ustawiono restUrl — najpierw zarejestruj urządzenie"),
             pupilId = pupilId,
             payload = JsonPrimitive(locale),
             verifyResponse = false
@@ -768,7 +768,7 @@ open class DzienniczekApi(
         vulcanHttpClient.request(
             method = "POST",
             endpoint = "mobile/push/all",
-            restUrl = credential.restUrl ?: error("restUrl not set – register first"),
+            restUrl = credential.restUrl ?: error("Nie ustawiono restUrl — najpierw zarejestruj urządzenie"),
             pupilId = pupilId,
             payload = JsonPrimitive(if (turnOn) "on" else "off")
         )
@@ -778,7 +778,7 @@ open class DzienniczekApi(
         val envelope = vulcanHttpClient.request(
             method = "POST",
             endpoint = "mobile/push",
-            restUrl = credential.restUrl ?: error("restUrl not set – register first"),
+            restUrl = credential.restUrl ?: error("Nie ustawiono restUrl — najpierw zarejestruj urządzenie"),
             pupilId = pupilId,
             payload = buildJsonObject {
                 put("Option", option)
@@ -796,7 +796,7 @@ open class DzienniczekApi(
         val envelope = vulcanHttpClient.request(
             method = "POST",
             endpoint = "mobile/push/configure",
-            restUrl = credential.restUrl ?: error("restUrl not set – register first"),
+            restUrl = credential.restUrl ?: error("Nie ustawiono restUrl — najpierw zarejestruj urządzenie"),
             pupilId = pupilId,
             payload = buildJsonObject {
                 putJsonArray("Options") {
@@ -817,7 +817,7 @@ open class DzienniczekApi(
         vulcanHttpClient.request(
             method = "DELETE",
             endpoint = "mobile/register",
-            restUrl = credential.restUrl ?: error("restUrl not set – register first"),
+            restUrl = credential.restUrl ?: error("Nie ustawiono restUrl — najpierw zarejestruj urządzenie"),
             pupilId = pupilId
         )
     }

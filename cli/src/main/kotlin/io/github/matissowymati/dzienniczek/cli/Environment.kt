@@ -18,17 +18,19 @@ object Env {
     )
 
     fun load(raw: Array<String>) {
+        values = emptyMap()
+        loadedPath = null
         if (raw.any { it == "--no-env" }) return
         val explicit = raw.indexOf("--env-file").takeIf { it >= 0 }?.let { index ->
-            raw.getOrNull(index + 1) ?: throw CliError("--env-file requires a path", Exit.USAGE)
+            raw.getOrNull(index + 1) ?: throw CliError("--env-file wymaga ścieżki", Exit.USAGE)
         } ?: raw.firstOrNull { it.startsWith("--env-file=") }?.substringAfter('=')
             ?: System.getenv("DZIENNICZEK_ENV_FILE")
         val path = Path.of(explicit ?: ".env").toAbsolutePath().normalize()
         if (!Files.exists(path)) {
-            if (explicit != null) throw CliError("Environment file not found: $path", Exit.CONFIG)
+            if (explicit != null) throw CliError("Nie znaleziono pliku środowiska: $path", Exit.CONFIG)
             return
         }
-        if (!Files.isRegularFile(path)) throw CliError("Environment path is not a file: $path", Exit.CONFIG)
+        if (!Files.isRegularFile(path)) throw CliError("Ścieżka środowiska nie wskazuje pliku: $path", Exit.CONFIG)
         values = Files.readAllLines(path).mapNotNull(::parseLine).toMap()
         loadedPath = path
     }

@@ -3,6 +3,7 @@ package io.github.matissowymati.dzienniczek.api.hebe.models
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.encoding.Decoder
@@ -15,8 +16,8 @@ import kotlinx.serialization.json.doubleOrNull
 import kotlinx.serialization.json.intOrNull
 
 /**
- * Serializer for VULCAN API datetime strings.
- * Handles both "YYYY-MM-DD HH:MM:SS" (space separator) and ISO "YYYY-MM-DDTHH:MM:SS" (T separator).
+ * Serializator ciągów daty i czasu API VULCAN.
+ * Obsługuje format „YYYY-MM-DD HH:MM:SS” (separator-spacja) i ISO „YYYY-MM-DDTHH:MM:SS” (separator T).
  */
 object VulcanDateTimeSerializer : KSerializer<LocalDateTime> {
     override val descriptor = PrimitiveSerialDescriptor("LocalDateTime", PrimitiveKind.STRING)
@@ -27,7 +28,7 @@ object VulcanDateTimeSerializer : KSerializer<LocalDateTime> {
 
     override fun deserialize(decoder: Decoder): LocalDateTime {
         val raw = decoder.decodeString()
-        // Normalize: replace space separator with T, strip timezone suffix
+        // Zamień separator-spację na T i usuń przyrostek strefy czasowej.
         val normalized = raw.replace(' ', 'T')
             .substringBefore('+')
             .let { if (it.endsWith('Z')) it.dropLast(1) else it }
@@ -36,7 +37,7 @@ object VulcanDateTimeSerializer : KSerializer<LocalDateTime> {
 }
 
 /**
- * Serializer for VULCAN API date-only strings in "YYYY-MM-DD" format.
+ * Serializator samych dat API VULCAN w formacie „YYYY-MM-DD”.
  */
 object VulcanDateSerializer : KSerializer<LocalDate> {
     override val descriptor = PrimitiveSerialDescriptor("LocalDate", PrimitiveKind.STRING)
@@ -51,8 +52,9 @@ object VulcanDateSerializer : KSerializer<LocalDate> {
 }
 
 /**
- * Serializer for numeric values that can come as either an integer (15) or decimal (15.0).
+ * Serializator wartości liczbowych, które mogą być całkowite (15) albo dziesiętne (15.0).
  */
+@OptIn(ExperimentalSerializationApi::class)
 object VulcanNullableIntSerializer : KSerializer<Int?> {
     override val descriptor = PrimitiveSerialDescriptor("NullableInt", PrimitiveKind.INT)
 

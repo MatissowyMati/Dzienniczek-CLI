@@ -1,5 +1,5 @@
 class Dzienniczek < Formula
-  desc "Agent-friendly CLI for VULCAN, eduVULCAN and Librus"
+  desc "CLI do VULCAN, eduVULCAN i Librus, przyjazne agentom AI"
   homepage "https://github.com/MatissowyMati/Dzienniczek-CLI"
   url "https://github.com/MatissowyMati/Dzienniczek-CLI.git", branch: "main"
   version "1.1.0"

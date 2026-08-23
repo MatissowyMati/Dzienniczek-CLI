@@ -27,13 +27,13 @@ private val TOKEN_PREFIXES = mapOf(
 )
 
 /**
- * VULCAN Hebe API client. Registers via a security token + PIN pair.
+ * Klient API VULCAN Hebe. Rejestruje urządzenie za pomocą tokenu zabezpieczającego i kodu PIN.
  *
- * Usage:
- * 1. Create a credential: `RsaCredential.createNew("Android", "My Device")`
- * 2. Create the API: `VulcanApi(credential, httpClient)`
- * 3. Register: `api.registerByToken(token, pin, tenant)`
- * 4. Call any endpoint from [DzienniczekApi]
+ * Użycie:
+ * 1. Utwórz dane urządzenia: `RsaCredential.createNew("Android", "Moje urządzenie")`
+ * 2. Utwórz klienta API: `VulcanApi(credential, httpClient)`
+ * 3. Zarejestruj urządzenie: `api.registerByToken(token, pin, tenant)`
+ * 4. Wywołaj dowolny punkt końcowy z [DzienniczekApi].
  */
 class VulcanApi(
     credential: ICredential,
@@ -44,17 +44,17 @@ class VulcanApi(
 ) {
 
     /**
-     * Registers the device using a security token and PIN.
+     * Rejestruje urządzenie za pomocą tokenu zabezpieczającego i kodu PIN.
      *
-     * @param securityToken The 3-character token prefix + remaining characters (e.g. "3S1ABCDE...")
-     * @param pin The registration PIN shown in the VULCAN web portal
-     * @param tenant The school tenant symbol
-     * @return The REST URL assigned after successful registration
+     * @param securityToken trzyznakowy prefiks tokenu i pozostałe znaki (np. "3S1ABCDE...")
+     * @param pin rejestracyjny kod PIN wyświetlany w portalu VULCAN
+     * @param tenant symbol instancji szkoły
+     * @return adres REST przypisany po udanej rejestracji
      */
     suspend fun registerByToken(securityToken: String, pin: String, tenant: String): String {
         val token = securityToken.uppercase()
         val baseUrl = TOKEN_PREFIXES[token.take(3)]
-            ?: throw WrongTokenException("Unknown token prefix: ${token.take(3)}")
+            ?: throw WrongTokenException("Nieznany prefiks tokenu: ${token.take(3)}")
         val restUrl = "$baseUrl/$tenant/api"
 
         vulcanHttpClient.request(

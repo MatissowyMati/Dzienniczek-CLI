@@ -1,7 +1,7 @@
-# Attribution
+# Informacja o autorstwie
 
-Dzienniczek CLI is an independent command-line project.
+Dzienniczek CLI jest niezależnym projektem wiersza poleceń.
 
-Its initial VULCAN, eduVULCAN, and Librus protocol implementation was derived from the MIT-licensed [DzienniczekSzpontniczek](https://github.com/szponciciel04/DzienniczekSzpontniczek) project. The original copyright notice is retained in [LICENSE](LICENSE).
+Początkowa implementacja protokołów VULCAN, eduVULCAN i Librus powstała na podstawie projektu [DzienniczekSzpontniczek](https://github.com/szponciciel04/DzienniczekSzpontniczek) udostępnionego na licencji MIT. Pierwotna informacja o prawach autorskich pozostaje w pliku [LICENSE](LICENSE).
 
-No mobile UI, artwork, application package, or original Git history is included in this repository.
+Repozytorium nie zawiera mobilnego interfejsu, grafik, pakietu aplikacji ani oryginalnej historii Git projektu źródłowego.

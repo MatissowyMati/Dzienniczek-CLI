@@ -23,19 +23,22 @@ import java.io.StringWriter
 import kotlin.system.exitProcess
 
 const val CLI_VERSION = "1.1.0"
+private val prettyErrorJson = Json { prettyPrint = true }
+private val compactErrorJson = Json { prettyPrint = false }
 
 fun main(raw: Array<String>) {
     val args = CliArgs(raw.toList())
     val code = try {
+        args.validate()
         Env.load(raw)
         runBlocking { execute(args) }
         Exit.OK
     } catch (error: CliError) {
-        error(error.message ?: "Error", error.code, args)
+        error(error.message ?: "Błąd", error.code, args)
         error.code
     } catch (error: Throwable) {
         val code = classify(error)
-        error(error.message ?: error::class.simpleName ?: "Error", code, args, error)
+        error(error.message ?: error::class.simpleName ?: "Błąd", code, args, error)
         code
     }
     if (code != Exit.OK) exitProcess(code)
@@ -59,6 +62,10 @@ private suspend fun execute(args: CliArgs) {
         emit(environmentStatus(), args)
         return
     }
+    if (command == "mcp") {
+        runMcpServer()
+        return
+    }
 
     val store = ConfigStore.create(args.value("config"))
     var config = store.load()
@@ -73,25 +80,25 @@ private suspend fun execute(args: CliArgs) {
             "login" -> {
                 val name = args.value("profile") ?: "default"
                 val provider = args.words.getOrNull(1) ?: Env.inferredProvider()
-                    ?: throw CliError("Set DZIENNICZEK_PROVIDER or use: dzienniczek login PROVIDER", Exit.USAGE)
+                    ?: throw CliError("Ustaw DZIENNICZEK_PROVIDER albo użyj: dzienniczek login DOSTAWCA", Exit.USAGE)
                 val profile = login(provider, args, client)
                 config = config.copy(currentProfile = name, profiles = config.profiles + (name to profile))
                 store.save(config)
-                ok("Logged in", args, buildJsonObject { put("profile", name); put("provider", profile.provider); put("accounts", profile.accounts.size) })
+                ok("Zalogowano", args, buildJsonObject { put("profile", name); put("provider", profile.provider); put("accounts", profile.accounts.size) })
             }
             "logout" -> {
                 if (args.flag("all")) {
-                    if (!args.flag("yes")) throw CliError("logout --all requires --yes", Exit.USAGE)
+                    if (!args.flag("yes")) throw CliError("logout --all wymaga --yes", Exit.USAGE)
                     config = ConfigData()
                     store.save(config)
-                    ok("All local profiles removed", args)
+                    ok("Usunięto wszystkie profile lokalne", args)
                 } else {
-                    val name = args.value("profile") ?: config.currentProfile ?: throw CliError("No active profile", Exit.CONFIG)
-                    if (!args.flag("yes")) throw CliError("logout removes stored credentials; pass --yes", Exit.USAGE)
+                    val name = args.value("profile") ?: config.currentProfile ?: throw CliError("Brak aktywnego profilu", Exit.CONFIG)
+                    if (!args.flag("yes")) throw CliError("logout usuwa zapisane dane logowania; dodaj --yes", Exit.USAGE)
                     val remaining = config.profiles - name
                     config = config.copy(currentProfile = remaining.keys.firstOrNull(), profiles = remaining)
                     store.save(config)
-                    ok("Local profile removed", args, buildJsonObject { put("profile", name) })
+                    ok("Usunięto profil lokalny", args, buildJsonObject { put("profile", name) })
                 }
             }
             "profile", "profiles" -> handleProfiles(args.words.getOrNull(1) ?: "list", args, store, config)
@@ -142,14 +149,14 @@ private suspend fun login(provider: String, args: CliArgs, client: HttpClient): 
         val password = args.required("password", "DZIENNICZEK_PASSWORD", true)
         val result = PrometheusLoginHelper().login(username, password, args.value("device") ?: "Dzienniczek CLI")
         val tenant = args.value("tenant") ?: Env.get("DZIENNICZEK_TENANT") ?: result.tenantTokens.keys.singleOrNull()
-            ?: throw CliError("Multiple tenants available: ${result.tenantTokens.keys.joinToString()}; pass --tenant", Exit.USAGE)
+            ?: throw CliError("Dostępnych jest kilka tenantów: ${result.tenantTokens.keys.joinToString()}; podaj --tenant", Exit.USAGE)
         val tokens = result.allTenantTokens.filter { decodeJWT(it).tenant == tenant }
-        if (tokens.isEmpty()) throw CliError("Tenant '$tenant' not returned by eduVULCAN", Exit.AUTH)
+        if (tokens.isEmpty()) throw CliError("eduVULCAN nie zwrócił tenanta '$tenant'", Exit.AUTH)
         registerEdu(args, client, tenant, tokens, username, password)
     }
     "jwt", "eduvulcan-jwt" -> {
         val tokens = args.values("token").ifEmpty { Env.get("DZIENNICZEK_JWT")?.split(',')?.filter(String::isNotBlank).orEmpty() }
-        if (tokens.isEmpty()) throw CliError("Pass one or more --token values or DZIENNICZEK_JWT", Exit.USAGE)
+        if (tokens.isEmpty()) throw CliError("Podaj co najmniej jeden --token albo DZIENNICZEK_JWT", Exit.USAGE)
         registerEdu(args, client, args.required("tenant", "DZIENNICZEK_TENANT"), tokens, null, null)
     }
     "librus" -> {
@@ -162,13 +169,13 @@ private suspend fun login(provider: String, args: CliArgs, client: HttpClient): 
         val requestedAccount = args.value("librus-account")
         val selected = requestedAccount?.let { wanted ->
             accounts.firstOrNull { it.login == wanted || it.id.toString() == wanted || it.studentName.contains(wanted, true) }
-                ?: throw CliError("Librus account '$wanted' not found", Exit.USAGE)
+                ?: throw CliError("Nie znaleziono konta Librus '$wanted'", Exit.USAGE)
         } ?: accounts.singleOrNull()
             ?: if (accounts.size > 1) throw CliError(
-                "Multiple Librus accounts available: ${accounts.joinToString { "${it.login} (${it.studentName})" }}; pass --librus-account",
+                "Dostępnych jest kilka kont Librus: ${accounts.joinToString { "${it.login} (${it.studentName})" }}; podaj --librus-account",
                 Exit.USAGE
             ) else accounts.firstOrNull()
-        ?: throw CliError("No Librus Synergia accounts found", Exit.AUTH)
+        ?: throw CliError("Nie znaleziono kont Librus Synergia", Exit.AUTH)
         val apiToken = api.getFreshApiToken(selected.login)
         Profile(
             provider = "librus", librusPortalToken = token.accessToken,
@@ -176,7 +183,7 @@ private suspend fun login(provider: String, args: CliArgs, client: HttpClient): 
             librusStudentName = selected.studentName, librusAccounts = accounts
         )
     }
-    else -> throw CliError("Unknown provider '$provider' (vulcan, eduvulcan, jwt, librus)", Exit.USAGE)
+    else -> throw CliError("Nieznany dostawca '$provider' (vulcan, eduvulcan, jwt, librus)", Exit.USAGE)
 }
 
 private suspend fun registerEdu(
@@ -204,8 +211,8 @@ private fun deviceOs(): String = when {
 
 private fun selectedProfile(config: ConfigData, requested: String?): Pair<String, Profile> {
     val name = requested ?: Env.get("DZIENNICZEK_PROFILE") ?: config.currentProfile
-        ?: throw CliError("No active profile; run 'dzienniczek login ...'", Exit.CONFIG)
-    return name to (config.profiles[name] ?: throw CliError("Profile '$name' not found", Exit.CONFIG))
+        ?: throw CliError("Brak aktywnego profilu; uruchom 'dzienniczek login ...'", Exit.CONFIG)
+    return name to (config.profiles[name] ?: throw CliError("Nie znaleziono profilu '$name'", Exit.CONFIG))
 }
 
 private fun handleProfiles(action: String, args: CliArgs, store: ConfigStore, config: ConfigData) {
@@ -229,18 +236,19 @@ private fun handleProfiles(action: String, args: CliArgs, store: ConfigStore, co
         }
         "use" -> {
             val name = args.words.getOrNull(2) ?: args.required("name")
-            if (name !in config.profiles) throw CliError("Profile '$name' not found", Exit.CONFIG)
+            if (name !in config.profiles) throw CliError("Nie znaleziono profilu '$name'", Exit.CONFIG)
             store.save(config.copy(currentProfile = name))
-            ok("Active profile changed", args, buildJsonObject { put("profile", name) })
+            ok("Zmieniono aktywny profil", args, buildJsonObject { put("profile", name) })
         }
         "remove", "delete" -> {
-            val name = args.words.getOrNull(2) ?: args.value("profile") ?: throw CliError("Pass profile name", Exit.USAGE)
-            if (!args.flag("yes")) throw CliError("profile remove requires --yes", Exit.USAGE)
+            val name = args.words.getOrNull(2) ?: args.value("profile") ?: throw CliError("Podaj nazwę profilu", Exit.USAGE)
+            if (!args.flag("yes")) throw CliError("profile remove wymaga --yes", Exit.USAGE)
+            if (name !in config.profiles) throw CliError("Nie znaleziono profilu '$name'", Exit.CONFIG)
             val remaining = config.profiles - name
             store.save(config.copy(currentProfile = config.currentProfile?.takeIf { it != name } ?: remaining.keys.firstOrNull(), profiles = remaining))
-            ok("Profile removed", args, buildJsonObject { put("profile", name) })
+            ok("Usunięto profil", args, buildJsonObject { put("profile", name) })
         }
-        else -> throw CliError("Unknown profile command '$action'", Exit.USAGE)
+        else -> throw CliError("Nieznane polecenie profilu '$action'", Exit.USAGE)
     }
 }
 
@@ -257,14 +265,14 @@ private suspend fun handleAccount(action: String, args: CliArgs, store: ConfigSt
                 val selected = selector.toIntOrNull()?.let { number ->
                     profile.librusAccounts.getOrNull(number) ?: profile.librusAccounts.firstOrNull { it.id == number }
                 } ?: profile.librusAccounts.firstOrNull { it.login == selector || it.studentName.contains(selector, true) }
-                ?: throw CliError("Librus account '$selector' not found", Exit.USAGE)
+                ?: throw CliError("Nie znaleziono konta Librus '$selector'", Exit.USAGE)
                 val token = LibrusApi(client, portalAccessToken = profile.librusPortalToken).getFreshApiToken(selected.login)
                 store.save(config.copy(profiles = config.profiles + (name to profile.copy(
                     librusApiToken = token, librusAccountLogin = selected.login, librusStudentName = selected.studentName
                 ))))
-                ok("Librus account changed", args, buildJsonObject { put("login", selected.login); put("student", selected.studentName) })
+                ok("Zmieniono konto Librus", args, buildJsonObject { put("login", selected.login); put("student", selected.studentName) })
             }
-            else -> throw CliError("Unknown account command '$action'", Exit.USAGE)
+            else -> throw CliError("Nieznane polecenie konta '$action'", Exit.USAGE)
         }
         return
     }
@@ -275,9 +283,9 @@ private suspend fun handleAccount(action: String, args: CliArgs, store: ConfigSt
             val selected = resolveAccount(profile, selector)
             val index = profile.accounts.indexOf(selected)
             store.save(config.copy(profiles = config.profiles + (name to profile.copy(selectedAccount = index))))
-            ok("Student account changed", args, buildJsonObject { put("account", index); put("pupilId", selected.pupil.id) })
+            ok("Zmieniono konto ucznia", args, buildJsonObject { put("account", index); put("pupilId", selected.pupil.id) })
         }
-        else -> throw CliError("Unknown account command '$action'", Exit.USAGE)
+        else -> throw CliError("Nieznane polecenie konta '$action'", Exit.USAGE)
     }
 }
 
@@ -294,35 +302,43 @@ private fun capabilities() = buildJsonObject {
     putJsonArray("providers") { listOf("vulcan", "eduvulcan", "eduvulcan-jwt", "librus").forEach(::add) }
     putJsonArray("commands") {
         listOf(
+            "help", "version", "capabilities", "env", "doctor", "config", "mcp", "login", "logout",
+            "profile list", "profile show", "profile use", "profile remove", "account list", "account use",
             "dashboard", "accounts", "periods", "heartbeat", "addressbook", "announcements", "completed-lessons",
-            "duties", "exams", "grades", "grades averages", "grades summary", "homework", "kindergarten-hours",
+            "duties", "exams", "grades", "grades averages", "grades summary", "grades categories",
+            "grade-averages", "grade-summary", "grade-categories", "homework", "kindergarten-hours",
             "kindergarten-teachers", "lucky-number", "meal-menu", "meetings", "notes", "planned-lessons",
-            "presence", "presence months", "presence subjects", "presence info", "messages received", "messages sent",
-            "messages deleted", "message", "schedule", "schedule-extra", "school-info", "teachers", "timeslots",
-            "trips", "events", "vacations", "push locale", "push all", "push set", "push configure",
-            "credential delete", "subjects", "users", "classrooms", "notices", "auto-login-token", "doctor"
+            "presence", "presence months", "presence subjects", "presence info", "messages list", "messages api",
+            "messages received", "messages sent", "messages deleted", "messages importance", "messages status",
+            "message", "schedule", "schedule-extra", "school-info", "teachers", "timeslots", "trips", "events",
+            "events categories", "event-categories", "vacations", "push locale", "push all", "push set",
+            "push configure", "credential delete", "me", "subjects", "users", "classrooms", "notices",
+            "notices categories", "notice-categories", "auto-login-token",
         ).forEach(::add)
     }
     putJsonArray("mutatingCommands") {
         listOf("login", "logout", "profile use", "profile remove", "account use", "messages importance",
-            "messages status", "push locale", "push all", "push set", "push configure", "credential delete").forEach(::add)
+            "messages status", "heartbeat", "push locale", "push all", "push set", "push configure",
+            "credential delete").forEach(::add)
     }
+    putJsonArray("sensitiveCommands") { add("auto-login-token") }
+    putJsonArray("mcpReadOnlyCommands") { MCP_READ_ONLY_COMMANDS.forEach(::add) }
     putJsonObject("globalOptions") {
-        put("--format", "json|table|plain"); put("--json", "alias for --format json"); put("--compact", "compact JSON")
-        put("--profile", "stored profile"); put("--account", "account index, pupil ID, or name"); put("--period", "period ID or number")
-        put("--from/--to", "YYYY-MM-DD inclusive date range"); put("--config", "config path override")
-        put("--env-file", "dotenv path (default: .env)"); put("--no-env", "disable dotenv loading")
-        put("--non-interactive", "never prompt; fail when required input is missing")
-        put("--timeout", "positive network timeout in seconds (default: 30)")
+        put("--format", "json|table|plain"); put("--json", "alias --format json"); put("--compact", "zwarty JSON")
+        put("--profile", "zapisany profil"); put("--account", "indeks konta, ID ucznia lub nazwa"); put("--period", "ID albo numer okresu")
+        put("--from/--to", "włączne daty YYYY-MM-DD"); put("--config", "inna ścieżka konfiguracji")
+        put("--env-file", "ścieżka dotenv (domyślnie .env)"); put("--no-env", "wyłącza dotenv")
+        put("--non-interactive", "nie pyta; zgłasza brak wymaganych danych")
+        put("--timeout", "dodatni limit czasu sieci w sekundach (domyślnie 30)")
     }
     putJsonObject("outputContract") {
-        put("stdout", "requested result only"); put("stderr", "errors and diagnostics only")
+        put("stdout", "wyłącznie żądany wynik"); put("stderr", "wyłącznie błędy i diagnostyka")
         put("defaultWhenPiped", "json"); put("recommended", "--json --compact --non-interactive")
         put("dates", "YYYY-MM-DD"); put("encoding", "UTF-8")
     }
     putJsonObject("exitCodes") {
-        put("0", "success"); put("2", "usage"); put("3", "authentication"); put("4", "network"); put("5", "remote API")
-        put("6", "local configuration"); put("10", "internal")
+        put("0", "sukces"); put("2", "użycie"); put("3", "uwierzytelnianie"); put("4", "sieć"); put("5", "zdalne API")
+        put("6", "konfiguracja lokalna"); put("10", "błąd wewnętrzny")
     }
 }
 
@@ -352,9 +368,9 @@ private fun doctorStatus(store: ConfigStore, config: ConfigData): JsonObject {
         put("environmentReadyForLogin", environmentReady)
         put("envFileLoaded", Env.loadedPath != null)
         putJsonArray("nextSteps") {
-            if (!hasProfile && environmentReady) add("Run: dzienniczek login --non-interactive")
-            if (!hasProfile && !environmentReady) add("Configure .env, then run: dzienniczek login --non-interactive")
-            if (hasProfile) add("Run: dzienniczek capabilities --json --compact")
+            if (!hasProfile && environmentReady) add("Uruchom: dzienniczek login --non-interactive")
+            if (!hasProfile && !environmentReady) add("Skonfiguruj .env, a potem uruchom: dzienniczek login --non-interactive")
+            if (hasProfile) add("Uruchom: dzienniczek capabilities --json --compact")
         }
     }
 }
@@ -376,16 +392,16 @@ private fun environmentStatus() = buildJsonObject {
 
 private fun printHelp() = println(
     """
-    dzienniczek $CLI_VERSION — VULCAN, eduVULCAN and Librus CLI
+    dzienniczek $CLI_VERSION — CLI do VULCAN, eduVULCAN i Librus
 
-    Login:
-      dzienniczek login vulcan --token TOKEN --pin PIN --symbol SCHOOL
-      dzienniczek login                         # provider and credentials from .env
-      dzienniczek login eduvulcan --username USER --password PASS [--tenant TENANT]
+    Logowanie:
+      dzienniczek login vulcan --token TOKEN --pin PIN --symbol SZKOLA
+      dzienniczek login                         # dostawca i dane z .env
+      dzienniczek login eduvulcan --username LOGIN --password HASLO [--tenant TENANT]
       dzienniczek login jwt --tenant TENANT --token JWT [--token JWT...]
-      dzienniczek login librus --username USER --password PASS [--librus-account LOGIN]
+      dzienniczek login librus --username LOGIN --password HASLO [--librus-account LOGIN]
 
-    Daily use:
+    Codzienne użycie:
       dzienniczek dashboard
       dzienniczek grades [averages|summary]
       dzienniczek schedule|exams|homework --from YYYY-MM-DD --to YYYY-MM-DD
@@ -393,25 +409,26 @@ private fun printHelp() = println(
       dzienniczek messages [received|sent|deleted]
       dzienniczek notes|announcements|teachers|school-info|trips|events|vacations
 
-    Profiles:
-      dzienniczek profile list|show|use NAME|remove NAME --yes
-      dzienniczek account list|use INDEX
+    Profile:
+      dzienniczek profile list|show|use NAZWA|remove NAZWA --yes
+      dzienniczek account list|use INDEKS
       dzienniczek logout --yes
 
-    Agents:
+    Agenci i MCP:
       dzienniczek capabilities --json
       dzienniczek doctor --json
       dzienniczek COMMAND --json --compact --non-interactive
-      Secrets may use DZIENNICZEK_USERNAME, DZIENNICZEK_PASSWORD,
-      DZIENNICZEK_TOKEN, DZIENNICZEK_PIN, DZIENNICZEK_SYMBOL and DZIENNICZEK_JWT.
-      A local .env is loaded automatically and is never required in Git.
+      dzienniczek mcp                    # lokalny serwer MCP przez stdio
+      Sekrety mogą pochodzić z DZIENNICZEK_USERNAME, DZIENNICZEK_PASSWORD,
+      DZIENNICZEK_TOKEN, DZIENNICZEK_PIN, DZIENNICZEK_SYMBOL oraz DZIENNICZEK_JWT.
+      Lokalny .env jest wczytywany automatycznie i nigdy nie powinien trafić do Git.
 
-    Global options:
-      --format json|table|plain   --profile NAME   --account VALUE
-      --from DATE --to DATE       --timeout SECONDS
-      --env-file PATH             --no-env         --non-interactive
+    Opcje globalne:
+      --format json|table|plain   --profile NAZWA   --account WARTOSC
+      --from DATA --to DATA       --timeout SEKUNDY
+      --env-file SCIEZKA          --no-env          --non-interactive
 
-    Run `dzienniczek capabilities --json` for the complete command inventory.
+    Pełną listę poleceń zwraca `dzienniczek capabilities --json`.
     """.trimIndent()
 )
 
@@ -419,7 +436,9 @@ private fun classify(error: Throwable): Int {
     val name = error::class.qualifiedName.orEmpty()
     val message = error.message.orEmpty()
     return when {
-        "WrongPin" in name || "WrongToken" in name || "Invalid credentials" in message || "Login failed" in message -> Exit.AUTH
+        "WrongPin" in name || "WrongToken" in name || "Invalid credentials" in message || "Login failed" in message ||
+            "Nieprawidłowe dane logowania" in message || "Logowanie nie powiodło się" in message ||
+            message.contains("captcha", ignoreCase = true) -> Exit.AUTH
         "ktor" in name || "timeout" in message.lowercase() || "connect" in message.lowercase() -> Exit.NETWORK
         "Dzienniczek" in name || "Status" in name || "API" in message -> Exit.API
         else -> Exit.INTERNAL
@@ -427,15 +446,16 @@ private fun classify(error: Throwable): Int {
 }
 
 private fun error(message: String, code: Int, args: CliArgs, throwable: Throwable? = null) {
-    if (args.flag("json") || args.value("format") == "json" || System.console() == null) {
+    if (args.flag("json") || args.suppliedValue("format") == "json" || System.console() == null) {
         val value = buildJsonObject {
             put("ok", false); put("error", message); put("code", code)
             if (args.flag("debug") && throwable != null) {
                 val writer = StringWriter(); throwable.printStackTrace(PrintWriter(writer)); put("trace", writer.toString())
             }
         }
-        System.err.println(Json { prettyPrint = !args.flag("compact") }.encodeToString(JsonObject.serializer(), value))
+        val json = if (args.flag("compact")) compactErrorJson else prettyErrorJson
+        System.err.println(json.encodeToString(JsonObject.serializer(), value))
     } else {
-        System.err.println("Error: $message")
+        System.err.println("Błąd: $message")
     }
 }

@@ -21,6 +21,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - run: ./gradlew :cli:test :cli:installDist :cli:distTar
       - run: cli/build/install/dzienniczek/bin/dzienniczek capabilities --json --compact
+      - run: python3 scripts/test-mcp.py
       - uses: actions/upload-artifact@v4
         if: matrix.os == 'ubuntu-latest'
         with:

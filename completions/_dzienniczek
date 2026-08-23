@@ -3,24 +3,25 @@
 _dzienniczek() {
   local -a commands
   commands=(
-    'login:log in to VULCAN, eduVULCAN, or Librus'
-    'logout:remove a local profile'
-    'profile:manage profiles'
-    'account:manage student accounts'
-    'dashboard:show the student dashboard'
-    'grades:list grades, averages, or summaries'
-    'schedule:show the timetable'
-    'exams:list exams'
-    'homework:list homework'
-    'presence:show attendance and statistics'
-    'messages:show message folders'
-    'notes:list notes'
-    'announcements:list announcements'
-    'capabilities:print the machine-readable command inventory'
-    'doctor:check local runtime, configuration, and login readiness'
-    'env:show credential availability without exposing values'
+    'login:zaloguj do VULCAN, eduVULCAN lub Librus'
+    'logout:usuń profil lokalny'
+    'profile:zarządzaj profilami'
+    'account:zarządzaj kontami uczniów'
+    'dashboard:pokaż pulpit ucznia'
+    'grades:pokaż oceny, średnie lub podsumowania'
+    'schedule:pokaż plan lekcji'
+    'exams:pokaż sprawdziany'
+    'homework:pokaż zadania domowe'
+    'presence:pokaż frekwencję i statystyki'
+    'messages:pokaż foldery wiadomości'
+    'notes:pokaż uwagi'
+    'announcements:pokaż ogłoszenia'
+    'capabilities:pokaż maszynową listę możliwości'
+    'doctor:sprawdź środowisko, konfigurację i gotowość logowania'
+    'env:pokaż dostępność danych logowania bez ujawniania wartości'
+    'mcp:uruchom lokalny serwer MCP przez stdio'
   )
-  _describe 'command' commands
+  _describe 'polecenie' commands
 }
 
 _dzienniczek "$@"

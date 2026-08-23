@@ -73,7 +73,7 @@ class ConfigStore private constructor(val path: Path) {
         return try {
             json.decodeFromString(Files.readString(path))
         } catch (e: Exception) {
-            throw CliError("Cannot read config ${path}: ${e.message}", Exit.CONFIG)
+            throw CliError("Nie można odczytać konfiguracji ${path}: ${e.message}", Exit.CONFIG)
         }
     }
 
@@ -94,7 +94,7 @@ class ConfigStore private constructor(val path: Path) {
         try {
             Files.setPosixFilePermissions(file, setOf(PosixFilePermission.OWNER_READ, PosixFilePermission.OWNER_WRITE))
         } catch (_: UnsupportedOperationException) {
-            // WSL, Linux and macOS use POSIX permissions; non-POSIX filesystems are best effort.
+            // WSL, Linux i macOS używają uprawnień POSIX; na innych systemach działamy w miarę możliwości.
         }
     }
 
@@ -117,15 +117,15 @@ data class HebeContext(
 )
 
 fun Profile.hebeApi(client: HttpClient): DzienniczekApi {
-    val restored = credential?.restore() ?: throw CliError("Profile has no VULCAN credential", Exit.CONFIG)
+    val restored = credential?.restore() ?: throw CliError("Profil nie ma danych uwierzytelniających VULCAN", Exit.CONFIG)
     return when (provider) {
         "eduvulcan" -> EduVulcanApi(restored, client)
         "vulcan" -> VulcanApi(restored, client)
-        else -> throw CliError("Command requires a VULCAN or eduVULCAN profile", Exit.USAGE)
+        else -> throw CliError("Polecenie wymaga profilu VULCAN albo eduVULCAN", Exit.USAGE)
     }
 }
 
 fun Profile.librusApi(client: HttpClient): LibrusApi {
-    if (provider != "librus") throw CliError("Command requires a Librus profile", Exit.USAGE)
+    if (provider != "librus") throw CliError("Polecenie wymaga profilu Librus", Exit.USAGE)
     return LibrusApi(client, librusPortalToken, librusApiToken)
 }

@@ -55,12 +55,12 @@ class LibrusLoginHelper {
     private val noRedirectClient = createClient(followRedirects = false)
 
     suspend fun login(email: String, password: String): LibrusTokenResponse {
-        // 1. Initial authorize request to get CSRF and form parameters
+        // 1. Początkowe żądanie autoryzacji pobiera CSRF i parametry formularza.
         val authPageResponse = httpClient.get(LibrusConstants.AUTHORIZE_URL)
         val authPageHtml = authPageResponse.bodyAsText()
         
         if ("robotem" in authPageHtml || "g-recaptcha" in authPageHtml) {
-             throw IllegalStateException("Captcha required by Librus Portal")
+             throw IllegalStateException("Portal Librus wymaga rozwiązania captcha")
         }
 
         val doc = Ksoup.parse(authPageHtml)
@@ -72,7 +72,7 @@ class LibrusLoginHelper {
             it.attr("name") to it.attr("value")
         } ?: emptyMap()
 
-        // 2. POST login data
+        // 2. Wyślij dane logowania żądaniem POST.
         val loginParams = Parameters.build {
             append("email", email)
             append("password", password)
@@ -89,13 +89,13 @@ class LibrusLoginHelper {
             header("Referer", LibrusConstants.AUTHORIZE_URL)
         }
 
-        // 3. Follow redirects to find the code
+        // 3. Podążaj za przekierowaniami, aby znaleźć kod.
         var currentLocation = loginResponse.headers[HttpHeaders.Location]
-            ?: throw IllegalStateException("Login failed: no redirect location. Check credentials.")
+            ?: throw IllegalStateException("Logowanie nie powiodło się: brak przekierowania. Sprawdź dane logowania.")
 
         var authCode: String? = null
         
-        // Follow max 5 redirects
+        // Obsłuż maksymalnie pięć przekierowań.
         repeat(5) {
             if (authCode != null) return@repeat
             
@@ -110,9 +110,9 @@ class LibrusLoginHelper {
             currentLocation = resp.headers[HttpHeaders.Location] ?: return@repeat
         }
 
-        val finalCode = authCode ?: throw IllegalStateException("Could not obtain auth code from Librus")
+        val finalCode = authCode ?: throw IllegalStateException("Nie udało się uzyskać kodu autoryzacji z Librusa")
 
-        // 4. Exchange code for token
+        // 4. Wymień kod na token.
         val tokenResponse: LibrusTokenResponse = httpClient.submitForm(
             url = LibrusConstants.TOKEN_URL,
             formParameters = Parameters.build {
