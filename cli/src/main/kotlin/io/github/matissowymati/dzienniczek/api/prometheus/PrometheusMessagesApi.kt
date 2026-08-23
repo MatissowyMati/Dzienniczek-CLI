@@ -85,7 +85,7 @@ class PrometheusMessagesApi(
             }
         }
         
-        // Load initial cookies
+        // Załaduj początkowe ciasteczka.
         currentCookies.forEach { cookie ->
             val domain = cookie.domain?.removePrefix(".") ?: "eduvulcan.pl"
             val url = Url("https://$domain")
@@ -96,15 +96,15 @@ class PrometheusMessagesApi(
         val ssoEncoded = UrlEncoderUtil.encode(ssoBaseUrl)
         val studentEncoded = UrlEncoderUtil.encode("https://uczen.eduvulcan.pl")
 
-        // First SSO flow to authenticate the client in the SSO domain
+        // Pierwszy przepływ SSO uwierzytelnia klienta w domenie SSO.
         val firstAuthUrl = "https://eduvulcan.pl/fs/ls?wa=wsignin1.0&wtrealm=$ssoEncoded%2F${tenant}%2FFs%2FLs%3Fwa%3Dwsignin1.0%26wtrealm%3D$studentEncoded%2F${tenant}%2FAccount%2FLogin%3FreturnUrl%3D$prometheusEncoded%26wctx%3Dauth%3DstudentEV%26nslo%3D1&wctx=nslo%3D1"
         authorizePrometheus(firstAuthUrl)
 
-        // Second SSO flow to authenticate the client in the messages domain
+        // Drugi przepływ SSO uwierzytelnia klienta w domenie wiadomości.
         val authorizeUrl = "$ssoBaseUrl/$tenant/Fs/Ls?wa=wsignin1.0&wtrealm=$messagesBaseUrl/$tenant/Account/Login?returnUrl=/$tenant/App&wctx=auth=studentEV&nslo=1"
         authorizePrometheus(authorizeUrl)
         
-        // Fetch tokens from App
+        // Pobierz tokeny z aplikacji.
         val appScript = Ksoup.parse(httpClient.get("$messagesBaseUrl/$tenant/App").bodyAsText())
             .select("script").firstOrNull()?.html() ?: ""
             
@@ -117,9 +117,11 @@ class PrometheusMessagesApi(
     private suspend fun authorizePrometheus(url: String) {
         val response1 = httpClient.get(url)
         val document = Ksoup.parse(response1.bodyAsText())
-        val res1 = findAndSubmitForm(document) ?: throw IllegalStateException("SSO error on $url - no form found! Page title: ${document.title()}")
+        val res1 = findAndSubmitForm(document)
+            ?: throw IllegalStateException("Błąd SSO pod adresem $url — nie znaleziono formularza. Tytuł strony: ${document.title()}")
         val doc2 = Ksoup.parse(res1.bodyAsText())
-        findAndSubmitForm(doc2) ?: throw IllegalStateException("SSO error (secondary form) - no form found! Page title: ${doc2.title()}")
+        findAndSubmitForm(doc2)
+            ?: throw IllegalStateException("Błąd SSO w formularzu dodatkowym — nie znaleziono formularza. Tytuł strony: ${doc2.title()}")
     }
     
     private suspend fun findAndSubmitForm(document: Document): HttpResponse? {

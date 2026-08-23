@@ -17,7 +17,6 @@ java {
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_17)
-        freeCompilerArgs.add("-Xannotation-default-target=param-property")
     }
 }
 
@@ -32,6 +31,7 @@ dependencies {
     implementation(libs.whyoleg.crypto.core)
     implementation(libs.whyoleg.crypto.jdk)
     implementation(libs.ksoup)
+    implementation(libs.mcp.server)
     implementation(libs.urlencoder)
     runtimeOnly(libs.slf4j.nop)
     testImplementation(kotlin("test"))

@@ -4,6 +4,7 @@ class CliArgs(tokens: List<String>) {
     val words = mutableListOf<String>()
     private val values = linkedMapOf<String, MutableList<String>>()
     private val switches = linkedSetOf<String>()
+    private val missingValues = linkedSetOf<String>()
 
     init {
         val booleanOptions = setOf(
@@ -24,8 +25,12 @@ class CliArgs(tokens: List<String>) {
                 if ('=' in body) {
                     val (key, value) = body.split('=', limit = 2)
                     values.getOrPut(key) { mutableListOf() }.add(value)
-                } else if (body !in booleanOptions && index + 1 < tokens.size && !tokens[index + 1].startsWith("--")) {
-                    values.getOrPut(body) { mutableListOf() }.add(tokens[++index])
+                } else if (body !in booleanOptions) {
+                    if (index + 1 < tokens.size && !tokens[index + 1].startsWith("--")) {
+                        values.getOrPut(body) { mutableListOf() }.add(tokens[++index])
+                    } else {
+                        missingValues.add(body)
+                    }
                 } else {
                     switches.add(body)
                 }
@@ -36,8 +41,24 @@ class CliArgs(tokens: List<String>) {
         }
     }
 
-    fun value(name: String): String? = values[name]?.lastOrNull()
-    fun values(name: String): List<String> = values[name].orEmpty()
+    fun value(name: String): String? {
+        requireValueIfPresent(name)
+        return values[name]?.lastOrNull()
+    }
+
+    fun values(name: String): List<String> {
+        requireValueIfPresent(name)
+        return values[name].orEmpty()
+    }
+
+    fun validate() {
+        missingValues.firstOrNull()?.let { name ->
+            throw CliError("--$name wymaga wartości", Exit.USAGE)
+        }
+    }
+
+    fun suppliedValue(name: String): String? = values[name]?.lastOrNull()
+
     fun flag(name: String): Boolean = name in switches || value(name)?.lowercase() in setOf("true", "1", "yes", "on")
     fun required(name: String, env: String? = null, secret: Boolean = false): String {
         value(name)?.takeIf { it.isNotBlank() }?.let { return it }
@@ -49,14 +70,22 @@ class CliArgs(tokens: List<String>) {
             if (!entered.isNullOrBlank()) return entered
         }
         val hint = if (env == null) "--$name" else "--$name or $env"
-        throw CliError("Missing $hint", Exit.USAGE)
+        throw CliError("Brakuje $hint", Exit.USAGE)
     }
 
     fun int(name: String, default: Int): Int = value(name)?.toIntOrNull()
-        ?: if (value(name) == null) default else throw CliError("--$name must be an integer", Exit.USAGE)
+        ?: if (value(name) == null) default else throw CliError("--$name musi być liczbą całkowitą", Exit.USAGE)
 
     fun positiveInt(name: String, default: Int): Int = int(name, default).also {
-        if (it <= 0) throw CliError("--$name must be greater than zero", Exit.USAGE)
+        if (it <= 0) throw CliError("--$name musi być większe od zera", Exit.USAGE)
+    }
+
+    fun nonNegativeInt(name: String, default: Int): Int = int(name, default).also {
+        if (it < 0) throw CliError("--$name musi być równe zero lub większe", Exit.USAGE)
+    }
+
+    private fun requireValueIfPresent(name: String) {
+        if (name in missingValues) throw CliError("--$name wymaga wartości", Exit.USAGE)
     }
 }
 

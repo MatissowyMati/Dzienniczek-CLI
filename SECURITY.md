@@ -1,16 +1,17 @@
-# Security policy
+# Polityka bezpieczeństwa
 
-## Reporting
+## Zgłaszanie problemów
 
-Do not open a public issue containing credentials, tokens, private keys, school data, or reproducible account access.
+Nie twórz publicznego zgłoszenia zawierającego dane logowania, tokeny, klucze prywatne, dane szkolne ani sposób odtworzenia dostępu do konta.
 
-Report security problems privately through GitHub Security Advisories for this repository. Include the affected version, impact, and a minimal reproduction with all secrets removed.
+Problemy bezpieczeństwa zgłaszaj prywatnie przez GitHub Security Advisories tego repozytorium. Podaj wersję, wpływ problemu i minimalny przykład z usuniętymi sekretami.
 
-## Secrets
+## Sekrety
 
-- `.env` files are ignored and must remain local.
-- Never attach profile files from `~/.config/dzienniczek` to issues.
-- Rotate credentials immediately if they are exposed.
-- Use a dedicated test account when investigating provider behavior.
+- Pliki `.env` są ignorowane i muszą pozostać lokalne.
+- Nigdy nie dołączaj do zgłoszeń plików profilu z `~/.config/dzienniczek`.
+- Po ujawnieniu danych logowania natychmiast je zmień lub odwołaj.
+- Do badania integracji z dostawcą używaj wydzielonego konta testowego.
+- Serwer MCP udostępnia wyłącznie polecenia tylko do odczytu i nie zwraca tokenu automatycznego logowania Librus.
 
-Only the latest released version receives security fixes.
+Poprawki bezpieczeństwa otrzymuje wyłącznie najnowsza wydana wersja.

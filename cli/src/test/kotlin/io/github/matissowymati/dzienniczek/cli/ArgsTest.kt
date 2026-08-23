@@ -29,5 +29,8 @@ class ArgsTest {
         assertTrue(args.flag("non-interactive"))
         assertEquals(45, args.positiveInt("timeout", 30))
         assertFailsWith<CliError> { CliArgs(listOf("--timeout", "0")).positiveInt("timeout", 30) }
+        assertFailsWith<CliError> { CliArgs(listOf("--timeout")).positiveInt("timeout", 30) }
+        assertFailsWith<CliError> { CliArgs(listOf("doctor", "--timeout")).validate() }
+        assertFailsWith<CliError> { CliArgs(listOf("--last-id", "-1")).nonNegativeInt("last-id", 0) }
     }
 }

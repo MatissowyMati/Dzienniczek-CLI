@@ -1,146 +1,167 @@
-DZIENNICZEK CLI — AI AGENT AND AUTOMATION GUIDE
-================================================
+DZIENNICZEK CLI — PRZEWODNIK DLA AGENTÓW AI I AUTOMATYZACJI
+================================================================
 
-Purpose
--------
-Dzienniczek CLI gives terminal agents and scripts structured access to VULCAN,
-eduVULCAN, and Librus. This guide applies to Codex, Claude Code, OpenClaw,
-Hermes, CI jobs, and custom shell automation.
+Przeznaczenie
+-------------
+Dzienniczek CLI udostępnia agentom terminalowym i skryptom dane z VULCAN,
+eduVULCAN oraz Librus. Przewodnik dotyczy Codex, Claude Code, innych agentów,
+zadań CI i własnej automatyzacji powłoki.
 
-Recommended invocation
+Preferowana integracja: MCP
+--------------------------
+Repozytorium zawiera konfiguracje MCP dla Codex (`.codex/config.toml`) i Claude
+Code (`.mcp.json`) oraz odpowiadające im umiejętności (skills) w `.agents/skills/dzienniczek`
+i `.claude/skills/dzienniczek`.
+
+Serwer uruchamia się poleceniem:
+
+  dzienniczek mcp
+
+Narzędzie MCP `dzienniczek` ma zamkniętą listę poleceń tylko do odczytu. Nie
+pozwala zalogować się, zmienić profilu lub konta, modyfikować wiadomości ani
+ustawień push, pobrać tokenu automatycznego logowania lub usunąć danych
+uwierzytelniających.
+
+Zalecane wywołanie CLI
 ----------------------
-Always use:
+Jeśli MCP nie jest dostępne, zawsze używaj:
 
-  dzienniczek COMMAND --json --compact --non-interactive
+  dzienniczek POLECENIE --json --compact --non-interactive
 
-Why:
+Znaczenie opcji:
 
-  --json              requests machine-readable output explicitly
-  --compact           avoids unnecessary output tokens
-  --non-interactive   fails instead of waiting for terminal input
+  --json              jawnie wybiera format maszynowy
+  --compact           ogranicza zbędne tokeny wyjścia
+  --non-interactive   zgłasza błąd zamiast oczekiwać na wpis użytkownika
 
-Add a bounded network timeout when appropriate:
+W razie potrzeby ustaw ograniczony czas żądania sieciowego:
 
   dzienniczek grades --json --compact --non-interactive --timeout 60
 
-First-run configuration
------------------------
-1. Copy the template in the repository:
+Pierwsza konfiguracja
+---------------------
+1. Skopiuj szablon z repozytorium:
 
      cp .env.example .env
      chmod 600 .env
 
-2. Configure exactly one provider in .env. For eduVULCAN:
+2. Skonfiguruj dokładnie jednego dostawcę. Przykład eduVULCAN:
 
      DZIENNICZEK_PROVIDER=eduvulcan
-     DZIENNICZEK_USERNAME=the-login
-     DZIENNICZEK_PASSWORD=the-password
-     DZIENNICZEK_PROFILE=default
+     DZIENNICZEK_USERNAME=login
+     DZIENNICZEK_PASSWORD=haslo
+     DZIENNICZEK_PROFILE=domyslny
 
-3. Check readiness without revealing secret values or contacting the provider:
+3. Sprawdź gotowość bez ujawniania wartości i bez połączenia z dostawcą:
 
      dzienniczek env --json --compact --non-interactive
      dzienniczek doctor --json --compact --non-interactive
 
-4. Log in and create the local profile:
+4. Zaloguj się i utwórz profil lokalny:
 
      dzienniczek login --json --compact --non-interactive
 
-5. Discover accounts and select one if needed:
+5. Wyświetl konta i w razie potrzeby wybierz ucznia:
 
      dzienniczek account list --json --compact --non-interactive
      dzienniczek account use 0 --json --compact --non-interactive
 
-The CLI automatically reads .env in the current directory. Use
---env-file PATH for a different file, or injected DZIENNICZEK_* environment
-variables in CI. Process environment variables override .env values.
+CLI automatycznie czyta `.env` z bieżącego katalogu. Inny plik można podać
+przez `--env-file SCIEZKA`; w CI należy wstrzykiwać zmienne `DZIENNICZEK_*`.
+Zmienne procesu mają pierwszeństwo przed `.env`.
 
-Never read, print, summarize, copy, commit, upload, or return .env contents.
-Do not put passwords, PINs, JWTs, or tokens directly in agent prompts.
+Nigdy nie czytaj, nie wyświetlaj, nie streszczaj, nie kopiuj, nie zatwierdzaj,
+nie wysyłaj ani nie zwracaj zawartości `.env`. Nie umieszczaj haseł, PIN-ów,
+JWT ani tokenów w poleceniu użytkownika lub rozmowie z agentem.
 
-Runtime discovery
------------------
-Do not guess command support. Query it:
+Wykrywanie możliwości
+---------------------
+Nie zgaduj, które polecenia są dostępne. Zapytaj CLI:
 
   dzienniczek capabilities --json --compact --non-interactive
 
-Use these local-only checks before a provider request:
+Pole `mcpReadOnlyCommands` zawiera dokładną listę operacji udostępnianych przez
+serwer MCP, a `mutatingCommands` i `sensitiveCommands` wskazują polecenia,
+których agent nie powinien uruchamiać bez jawnej intencji użytkownika.
+
+Przed żądaniem do dostawcy wykonaj odpowiednie kontrole lokalne:
 
   dzienniczek version --json --compact --non-interactive
   dzienniczek doctor --json --compact --non-interactive
   dzienniczek profile show --json --compact --non-interactive
 
-Output and error contract
+Kontrakt wyjścia i błędów
 -------------------------
-Successful JSON is written to stdout. Errors and diagnostics are written to
-stderr. In JSON mode an error has this shape:
+Poprawny JSON trafia na stdout. Błędy i diagnostyka trafiają na stderr. Błąd
+w trybie JSON ma postać:
 
-  {"ok":false,"error":"description","code":N}
+  {"ok":false,"error":"opis","code":N}
 
-Exit codes:
+Kody zakończenia:
 
-  0   success
-  2   invalid command or arguments
-  3   authentication failure
-  4   network failure or timeout
-  5   remote provider/API failure
-  6   local configuration failure
-  10  unexpected internal failure
+  0   sukces
+  2   nieprawidłowe polecenie lub argumenty
+  3   błąd uwierzytelniania
+  4   błąd sieci lub przekroczenie limitu czasu
+  5   błąd zdalnego API
+  6   błąd lokalnej konfiguracji
+  10  nieoczekiwany błąd wewnętrzny
 
-Parse stdout only when the exit code is 0. Treat unknown JSON fields as
-forward-compatible additions. Do not scrape human tables. Dates passed to
---from and --to use YYYY-MM-DD and are inclusive.
+Analizuj stdout tylko przy kodzie 0. Traktuj nieznane pola JSON jako przyszłe,
+zgodne rozszerzenia. Nie parsuj tabel przeznaczonych dla człowieka. Daty w
+`--from` i `--to` mają format `YYYY-MM-DD`, a granice zakresu są włączne.
 
-Safe agent policy (copy into agent instructions)
--------------------------------------------------
-You may run read-only Dzienniczek CLI commands using:
-  --json --compact --non-interactive
-Run `dzienniczek capabilities --json --compact --non-interactive` before using
-an unfamiliar command. Never display or publish .env, the profile config,
-passwords, tokens, PINs, JWTs, private keys, or raw debug traces. Ask the user
-before running any mutating command. Never run credential deletion unless the
-user explicitly requests remote revocation and confirms the target. Check the
-process exit code before parsing stdout. Summarize school data minimally and do
-not expose one student's information to another person.
+Bezpieczna polityka agenta
+--------------------------
+Możesz wykonywać polecenia Dzienniczek CLI tylko do odczytu z opcjami
+`--json --compact --non-interactive`. Przed nieznanym poleceniem uruchom
+`dzienniczek capabilities --json --compact --non-interactive`. Nigdy nie
+ujawniaj `.env`, pliku profilu, haseł, tokenów, PIN-ów, JWT, kluczy prywatnych
+ani surowych śladów debugowania. Przed każdą operacją mutującą uzyskaj wyraźną
+zgodę użytkownika. Nie usuwaj danych uwierzytelniających, dopóki użytkownik
+jednoznacznie nie zażąda zdalnego odwołania urządzenia i nie potwierdzi celu.
+Sprawdź kod procesu przed analizą stdout. Ograniczaj zakres danych ucznia i nie
+ujawniaj danych jednego ucznia innej osobie.
 
-Read-only workflow examples
----------------------------
-Current grades:
+Przykłady tylko do odczytu
+--------------------------
+Oceny:
 
   dzienniczek grades --json --compact --non-interactive
 
-Grades for a selected pupil/profile:
+Oceny wybranego ucznia i profilu:
 
-  dzienniczek grades --profile default --account 0 --json --compact --non-interactive
+  dzienniczek grades --profile domyslny --account 0 --json --compact --non-interactive
 
-Schedule for an exact range:
+Plan dla dokładnego zakresu:
 
   dzienniczek schedule --from 2026-09-01 --to 2026-09-07 --json --compact --non-interactive
 
-Upcoming work:
+Nadchodzące obowiązki:
 
   dzienniczek exams --json --compact --non-interactive
   dzienniczek homework --json --compact --non-interactive
 
-Attendance and messages:
+Frekwencja i wiadomości:
 
   dzienniczek presence --json --compact --non-interactive
   dzienniczek messages received --json --compact --non-interactive
 
-Human use
----------
-For readable terminal output, request a table:
+Użycie przez człowieka
+----------------------
+Aby uzyskać czytelne wyjście terminalowe, wybierz tabelę:
 
   dzienniczek grades --format table
   dzienniczek schedule --format table
   dzienniczek doctor --format table
 
-When attached to a terminal, table output is the default. When stdout is piped,
-JSON is the default. Explicit --format is recommended in saved scripts.
+Tabela jest domyślna w terminalu, a JSON przy przekierowaniu stdout. W zapisanych
+skryptach zawsze podawaj format jawnie.
 
-Mutating and destructive operations
------------------------------------
-These commands change local or remote state and require user intent:
+Operacje mutujące i destrukcyjne
+--------------------------------
+Następujące polecenia zmieniają stan lokalny lub zdalny i wymagają intencji
+użytkownika:
 
   login
   logout
@@ -150,17 +171,17 @@ These commands change local or remote state and require user intent:
   push locale / push all / push set / push configure
   credential delete
 
-Commands that remove data require --yes. `credential delete --yes` revokes the
-remote registered device and cannot be undone. `logout --yes` removes a local
-profile but does not revoke the device.
+Polecenia usuwające wymagają `--yes`. `credential delete --yes` odwołuje zdalne
+urządzenie i jest nieodwracalne. `logout --yes` usuwa profil lokalny, ale nie
+odwołuje urządzenia.
 
-Troubleshooting
----------------
-1. Run `dzienniczek doctor --json --compact --non-interactive`.
-2. Run `dzienniczek env --json --compact --non-interactive`.
-3. Verify the selected profile and account with `profile show` and `account list`.
-4. Retry a slow provider with `--timeout 60`.
-5. Use `--debug` only for local diagnosis. Debug traces can contain provider
-   metadata and should not be pasted into public issues without review.
+Rozwiązywanie problemów
+-----------------------
+1. Uruchom `dzienniczek doctor --json --compact --non-interactive`.
+2. Uruchom `dzienniczek env --json --compact --non-interactive`.
+3. Sprawdź profil i konto przez `profile show` oraz `account list`.
+4. Dla wolnego dostawcy ponów próbę z `--timeout 60`.
+5. Używaj `--debug` tylko lokalnie. Ślady mogą zawierać metadane dostawcy i nie
+   powinny trafiać do publicznych zgłoszeń bez przeglądu.
 
-See docs/cli.md for the complete command reference.
+Pełna dokumentacja poleceń znajduje się w `docs/cli.md`.

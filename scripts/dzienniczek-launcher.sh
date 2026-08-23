@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-# Dzienniczek CLI local launcher
+# Lokalny skrypt uruchamiający Dzienniczek CLI
 set -eu
 
 launcher_path=$0

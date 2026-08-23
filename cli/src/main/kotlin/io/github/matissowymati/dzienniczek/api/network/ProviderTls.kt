@@ -12,7 +12,7 @@ object ProviderTls {
         val system = trustManager(null)
         val certificate = ProviderTls::class.java.getResourceAsStream("/certs/certum-trusted-root-ca.pem")
             ?.use { CertificateFactory.getInstance("X.509").generateCertificate(it) }
-            ?: error("Bundled Certum root certificate is missing")
+            ?: error("Brakuje dołączonego certyfikatu głównego Certum")
         val store = KeyStore.getInstance(KeyStore.getDefaultType()).apply {
             load(null)
             setCertificateEntry("certum-trusted-root-ca", certificate)

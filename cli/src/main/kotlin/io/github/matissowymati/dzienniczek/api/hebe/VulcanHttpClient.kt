@@ -107,7 +107,7 @@ class VulcanHttpClient(
         } catch (e: DzienniczekApiException) {
             throw e
         } catch (e: Exception) {
-            throw FailedRequestException(e.message ?: "Request failed")
+            throw FailedRequestException(e.message ?: "Żądanie nie powiodło się")
         }
 
         if (response.status.value != 200) {

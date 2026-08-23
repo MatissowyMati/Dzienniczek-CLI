@@ -1,146 +1,170 @@
-# CLI reference
+# Dokumentacja CLI
 
-## Global options
+Nazwy poleceń i opcji pozostają po angielsku, aby zachować stabilny interfejs skryptowy. Opisy i komunikaty są po polsku.
 
-| Option | Purpose |
+## Opcje globalne
+
+| Opcja | Działanie |
 | --- | --- |
-| `--format json\|table\|plain` | Select output format |
-| `--json` | Shortcut for JSON output |
-| `--compact` | Compact JSON |
-| `--profile NAME` | Select a stored profile |
-| `--account VALUE` | Select account index, pupil ID, or matching name |
-| `--period VALUE` | Select period ID or number |
-| `--from DATE` | Inclusive start date in `YYYY-MM-DD` format |
-| `--to DATE` | Inclusive end date in `YYYY-MM-DD` format |
-| `--config PATH` | Override profile configuration path |
-| `--env-file PATH` | Load credentials from another dotenv file |
-| `--no-env` | Disable dotenv loading |
-| `--non-interactive` | Never prompt; fail if required input is missing |
-| `--timeout SECONDS` | Set the positive network timeout; default is 30 seconds |
-| `--debug` | Include diagnostic traces in JSON errors |
+| `--format json\|table\|plain` | Wybiera format wyjścia |
+| `--json` | Skrót wybierający JSON |
+| `--compact` | Zapisuje JSON bez zbędnych odstępów |
+| `--profile NAZWA` | Wybiera zapisany profil |
+| `--account WARTOSC` | Wybiera indeks konta, identyfikator ucznia lub pasującą nazwę |
+| `--period WARTOSC` | Wybiera identyfikator albo numer okresu |
+| `--from DATA` | Ustawia włącznie początek zakresu w formacie `YYYY-MM-DD` |
+| `--to DATA` | Ustawia włącznie koniec zakresu w formacie `YYYY-MM-DD` |
+| `--config SCIEZKA` | Zastępuje ścieżkę konfiguracji profili |
+| `--env-file SCIEZKA` | Wczytuje dane logowania z innego pliku dotenv |
+| `--no-env` | Wyłącza wczytywanie dotenv |
+| `--non-interactive` | Nie wyświetla pytań; przy braku danych zwraca błąd |
+| `--timeout SEKUNDY` | Ustawia dodatni limit czasu sieci; domyślnie 30 sekund |
+| `--debug` | Dołącza ślad diagnostyczny do błędu JSON |
 
-The default date range is Monday through Sunday of the current week.
+Domyślny zakres dat obejmuje bieżący tydzień od poniedziałku do niedzieli. `--page-size` musi być dodatnie. `--last-id` nie może być ujemne. Brak wartości po opcji, np. samo `--timeout`, jest błędem użycia.
 
-## Environment variables
+## Zmienne środowiskowe
 
-| Variable | Purpose |
+| Zmienna | Przeznaczenie |
 | --- | --- |
-| `DZIENNICZEK_PROVIDER` | `eduvulcan`, `vulcan`, `jwt`, or `librus` |
-| `DZIENNICZEK_USERNAME` | eduVULCAN or Librus login |
-| `DZIENNICZEK_PASSWORD` | eduVULCAN or Librus password |
-| `DZIENNICZEK_TENANT` | eduVULCAN tenant when selection is ambiguous |
-| `DZIENNICZEK_TOKEN` | VULCAN registration token |
-| `DZIENNICZEK_PIN` | VULCAN registration PIN |
-| `DZIENNICZEK_SYMBOL` | VULCAN school symbol |
-| `DZIENNICZEK_JWT` | One or more comma-separated JWTs |
-| `DZIENNICZEK_PROFILE` | Default profile name |
-| `DZIENNICZEK_CONFIG` | Profile configuration path |
-| `DZIENNICZEK_ENV_FILE` | Dotenv file path |
+| `DZIENNICZEK_PROVIDER` | `eduvulcan`, `vulcan`, `jwt` albo `librus` |
+| `DZIENNICZEK_USERNAME` | Nazwa użytkownika eduVULCAN lub Librus |
+| `DZIENNICZEK_PASSWORD` | Hasło eduVULCAN lub Librus |
+| `DZIENNICZEK_TENANT` | Tenant eduVULCAN, gdy wybór nie jest jednoznaczny |
+| `DZIENNICZEK_TOKEN` | Token rejestracyjny VULCAN |
+| `DZIENNICZEK_PIN` | PIN rejestracyjny VULCAN |
+| `DZIENNICZEK_SYMBOL` | Symbol szkoły VULCAN |
+| `DZIENNICZEK_JWT` | Co najmniej jeden JWT rozdzielony przecinkami |
+| `DZIENNICZEK_PROFILE` | Domyślna nazwa profilu |
+| `DZIENNICZEK_CONFIG` | Ścieżka konfiguracji profili |
+| `DZIENNICZEK_ENV_FILE` | Ścieżka pliku dotenv |
 
-External variables override `.env`. Empty values are treated as missing.
+Zmienne procesu mają pierwszeństwo przed `.env`. Puste wartości są traktowane jak brakujące.
 
-Check availability without printing values:
+Dostępność danych można sprawdzić bez wyświetlania ich wartości:
 
 ```sh
 dzienniczek env --json
 ```
 
-Check whether Java, credentials, and the active profile are ready:
+Gotowość Javy, danych logowania i aktywnego profilu sprawdza:
 
 ```sh
 dzienniczek doctor --json
 ```
 
-`doctor` is local-only and does not log in or contact a provider. Its `ok` field is true when Java 17+ is available and either a usable stored profile or a complete login environment exists.
+`doctor` działa lokalnie i nie loguje się ani nie łączy z dostawcą. Pole `ok` ma wartość `true`, gdy działa Java 17+ oraz istnieje użyteczny profil lub kompletne środowisko logowania.
 
-## Authentication
+## Uwierzytelnianie
 
 ```sh
-# Provider and credentials from .env
+# Dostawca i dane z .env
 dzienniczek login
 
-# Explicit provider; credentials may still come from .env
+# Jawny dostawca; dane nadal mogą pochodzić z .env
 dzienniczek login eduvulcan
 dzienniczek login vulcan
 dzienniczek login jwt
 dzienniczek login librus
 ```
 
-Add `--profile NAME` to retain multiple logins. `--no-store-password` keeps the eduVULCAN messaging password out of profile storage; it must then remain available through the environment when messages are requested.
+Opcja `--profile NAZWA` pozwala zachować kilka logowań. `--no-store-password` nie zapisuje hasła używanego do wiadomości eduVULCAN w profilu; przy odczycie wiadomości hasło musi być wtedy nadal dostępne w środowisku.
 
-## Data commands
+## Polecenia danych
 
-| Command | Description |
+| Polecenie | Opis |
 | --- | --- |
-| `dashboard` | Grades, averages, upcoming work, and lucky number |
-| `accounts` | Raw provider accounts |
-| `periods` | School periods |
-| `grades [list\|averages\|summary]` | Grade data |
-| `schedule` / `timetable` | Timetable with changes |
-| `schedule-extra` | Additional schedule changes |
-| `exams` | Exams and tests |
-| `homework` | Homework assignments |
-| `completed-lessons` | Completed lessons |
-| `planned-lessons` | Planned lessons |
-| `presence` | Attendance entries |
-| `presence months` | Monthly statistics |
-| `presence subjects` | Subject statistics |
-| `presence info` | Detailed attendance entry |
-| `notes` | Student notes |
-| `announcements` | Announcements |
-| `messages received\|sent\|deleted` | Message folders |
-| `message --id ID` | Message content |
-| `teachers` | Teachers or Librus users |
-| `school-info` | School information |
-| `trips` | School trips |
-| `events` | User events |
-| `vacations` | Holidays and free days |
-| `meetings` | Parent meetings |
-| `meal-menu` | Cafeteria menu |
-| `duties` | School duties |
-| `lucky-number` | Lucky number |
-| `addressbook` | Message address book |
-| `timeslots` | Lesson time slots |
-| `kindergarten-hours` | Kindergarten hours |
-| `kindergarten-teachers` | Kindergarten teachers |
+| `dashboard` | Oceny, średnie, nadchodzące obowiązki i szczęśliwy numerek |
+| `accounts` | Surowa lista kont dostawcy |
+| `periods` | Okresy szkolne |
+| `grades [list\|averages\|summary]` | Oceny, średnie lub podsumowania |
+| `schedule` / `timetable` | Plan lekcji ze zmianami |
+| `schedule-extra` | Dodatkowe zmiany planu |
+| `exams` | Sprawdziany i kartkówki |
+| `homework` | Zadania domowe |
+| `completed-lessons` | Zrealizowane lekcje |
+| `planned-lessons` | Zaplanowane lekcje |
+| `presence` | Wpisy frekwencji |
+| `presence months` | Statystyki miesięczne frekwencji |
+| `presence subjects` | Statystyki frekwencji według przedmiotów |
+| `presence info` | Szczegóły wpisu frekwencji |
+| `notes` | Uwagi ucznia |
+| `announcements` | Ogłoszenia |
+| `messages received\|sent\|deleted` | Foldery wiadomości |
+| `message --id ID` | Treść wiadomości |
+| `teachers` | Nauczyciele albo użytkownicy Librus |
+| `school-info` | Informacje o szkole |
+| `trips` | Wycieczki szkolne |
+| `events` | Wydarzenia użytkownika |
+| `vacations` | Dni wolne i ferie |
+| `meetings` | Zebrania z rodzicami |
+| `meal-menu` | Jadłospis |
+| `duties` | Dyżury szkolne |
+| `lucky-number` | Szczęśliwy numerek |
+| `addressbook` | Książka adresowa wiadomości |
+| `timeslots` | Godziny lekcyjne |
+| `kindergarten-hours` | Godziny przedszkolne |
+| `kindergarten-teachers` | Nauczyciele przedszkolni |
 
-Librus profiles additionally support `subjects`, `classrooms`, `notices`, category subcommands, and `auto-login-token`.
+Profile Librus obsługują dodatkowo `subjects`, `classrooms`, `notices`, podpolecenia kategorii i `auto-login-token`. Ostatnie polecenie zwraca sekret i nie jest dostępne przez MCP.
 
-## Profile management
+## Zarządzanie profilami
 
 ```sh
 dzienniczek profile list
 dzienniczek profile show
-dzienniczek profile use NAME
-dzienniczek profile remove NAME --yes
+dzienniczek profile use NAZWA
+dzienniczek profile remove NAZWA --yes
 dzienniczek account list
-dzienniczek account use INDEX
+dzienniczek account use INDEKS
 dzienniczek logout --yes
 dzienniczek logout --all --yes
 ```
 
-## Mutating commands
+## Polecenia mutujące
 
 ```sh
 dzienniczek messages importance --id ID --important true
-dzienniczek messages status --id ID --status NUMBER
+dzienniczek messages status --id ID --status NUMER
 dzienniczek push locale --locale pl-PL
 dzienniczek push all --enabled true
-dzienniczek push set --option NAME --enabled true
-dzienniczek push configure --option NAME=true --locale pl-PL
+dzienniczek push set --option NAZWA --enabled true
+dzienniczek push configure --option NAZWA=true --locale pl-PL
 dzienniczek credential delete --yes
 ```
 
-Remote credential deletion cannot be undone. Local removal does not revoke the registered device unless `credential delete --yes` is used first.
+Zdalne usunięcie danych uwierzytelniających jest nieodwracalne. Usunięcie profilu lokalnego nie odwołuje zarejestrowanego urządzenia; wcześniej trzeba jawnie wykonać `credential delete --yes`.
 
-## Output contract
+## Serwer MCP
 
-- `--json` emits one valid JSON value to stdout.
-- `--compact` changes whitespace only.
-- Errors go to stderr as `{ "ok": false, "error": "...", "code": N }` in JSON mode.
-- Human-readable errors go to stderr and successful tables go to stdout.
-- Dates accepted by global range options use `YYYY-MM-DD`.
-- Output is UTF-8. Fields may be added in compatible releases; consumers should ignore unknown fields.
-- Exit code `0` means the command completed. The `doctor` command also has an `ok` field describing readiness.
+Serwer stdio uruchamia:
 
-For AI integrations and safe automation conventions, read [AI_USAGE.txt](AI_USAGE.txt).
+```sh
+dzienniczek mcp
+```
+
+Repozytorium zawiera konfigurację dla Codex w `.codex/config.toml` i dla Claude Code w `.mcp.json`. Obie korzystają z `scripts/dzienniczek-mcp.sh`, który wybiera Javę 17 i w razie potrzeby buduje lokalną dystrybucję.
+
+Narzędzie MCP nazywa się `dzienniczek`. Przyjmuje pole `polecenie` i opcjonalne, typowane pola: `profil`, `konto`, `okres`, `od`, `do`, `dzien`, `tydzien`, `identyfikator`, `skrzynka`, `weakRefId`, `typ`, `rozmiarStrony`, `ostatnieId`, `limitCzasu`, `skrot`, `hebe` oraz `api`.
+
+Lista `polecenie` jest zamknięta i obejmuje wyłącznie odczyt. Serwer nie przyjmuje dowolnych argumentów powłoki, nie uruchamia poleceń przez powłokę i blokuje wszystkie znane operacje mutujące oraz sekrety. Wynik zawiera tekstowy JSON dla zgodności z klientami oraz `structuredContent`. Dokładną listę zwraca pole `mcpReadOnlyCommands` polecenia `capabilities`.
+
+Test protokołu:
+
+```sh
+./gradlew :cli:installDist
+python3 scripts/test-mcp.py
+```
+
+## Kontrakt wyjścia
+
+- `--json` zapisuje jedną poprawną wartość JSON na stdout.
+- `--compact` zmienia wyłącznie białe znaki.
+- Błędy trafiają na stderr jako `{ "ok": false, "error": "...", "code": N }` w trybie JSON.
+- Błędy czytelne dla człowieka trafiają na stderr, a poprawne tabele na stdout.
+- Daty w opcjach zakresu mają format `YYYY-MM-DD`.
+- Wyjście używa UTF-8. Kolejne wersje mogą dodawać pola; odbiorca powinien ignorować nieznane.
+- Kod zakończenia `0` oznacza ukończenie polecenia. `doctor` ma dodatkowe pole `ok` opisujące gotowość środowiska.
+- W trybie MCP stdout jest zarezerwowany wyłącznie dla komunikatów JSON-RPC.
+
+Zasady bezpiecznej automatyzacji opisuje [AI_USAGE.txt](AI_USAGE.txt).

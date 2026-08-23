@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "dzienniczek": {
+      "type": "stdio",
+      "command": "${CLAUDE_PROJECT_DIR:-.}/scripts/dzienniczek-mcp.sh",
+      "args": [],
+      "timeout": 130000
+    }
+  }
+}

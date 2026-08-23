@@ -35,11 +35,11 @@ suspend fun runLibrusCommand(command: String, subcommand: String?, args: CliArgs
             else -> librusUnknown("events $subcommand")
         }
         "event-categories" -> librusEncoded(api.getEventCategories())
-        "schedule", "timetable" -> librusEncoded(api.getTimetable(try { LocalDate.parse(week) } catch (_: Exception) { throw CliError("--week must be YYYY-MM-DD", Exit.USAGE) }))
+        "schedule", "timetable" -> librusEncoded(api.getTimetable(try { LocalDate.parse(week) } catch (_: Exception) { throw CliError("--week musi mieć format YYYY-MM-DD", Exit.USAGE) }))
         "messages" -> librusMessages(api, subcommand ?: "list")
         "message" -> {
             val id = args.required("id")
-            if (args.flag("api")) librusEncoded(api.getMessageContent(id.toIntOrNull() ?: throw CliError("API message --id must be an integer", Exit.USAGE)))
+            if (args.flag("api")) librusEncoded(api.getMessageContent(id.toIntOrNull() ?: throw CliError("Dla wiadomości API --id musi być liczbą całkowitą", Exit.USAGE)))
             else librusEncoded(api.getSynergiaMessageContent(id))
         }
         "notices", "notes" -> when (subcommand) {
@@ -64,4 +64,4 @@ private suspend fun librusMessages(api: LibrusApi, subcommand: String): JsonElem
     else -> librusUnknown("messages $subcommand")
 }
 
-private fun librusUnknown(command: String): Nothing = throw CliError("Unknown Librus command '$command'", Exit.USAGE)
+private fun librusUnknown(command: String): Nothing = throw CliError("Nieznane polecenie Librus '$command'", Exit.USAGE)

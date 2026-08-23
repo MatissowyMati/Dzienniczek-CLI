@@ -25,7 +25,7 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 object HebeSigner {
 
     /**
-     * Represents the generated RSA key pair along with its MD5 fingerprint.
+     * Reprezentuje wygenerowaną parę kluczy RSA wraz z jej odciskiem MD5.
      */
     data class KeyPairInfo(
         val publicKey: String,
@@ -37,8 +37,8 @@ object HebeSigner {
     private val rsaAlgorithm = crypto.get(RSA.PKCS1)
 
     /**
-     * Generates a new 2048-bit RSA key pair.
-     * Returns a [KeyPairInfo] which supports destructuring.
+     * Generuje nową 2048-bitową parę kluczy RSA.
+     * Zwraca [KeyPairInfo], który obsługuje destrukturyzację.
      */
     @OptIn(ExperimentalEncodingApi::class, DelicateCryptographyApi::class)
     fun generateKeyPair(): KeyPairInfo {
@@ -59,7 +59,7 @@ object HebeSigner {
     }
 
     /**
-     * Computes the SHA-256 digest of the request body.
+     * Oblicza skrót SHA-256 treści żądania.
      */
     @OptIn(ExperimentalEncodingApi::class)
     fun getDigest(body: String?): String? = body?.let {
@@ -67,7 +67,7 @@ object HebeSigner {
     }
 
     /**
-     * Generates headers required for authenticating requests to Vulcan Hebe API.
+     * Generuje nagłówki wymagane do uwierzytelniania żądań do API VULCAN Hebe.
      */
     fun getSignatureHeaders(
         keyId: String,
@@ -98,7 +98,7 @@ object HebeSigner {
 
     private fun formatCanonicalUrl(path: String): String {
         val match = "(api/mobile/.+)".toRegex().find(path)
-            ?: throw IllegalArgumentException("URL must match `(api/mobile/.+)` pattern: $path")
+            ?: throw IllegalArgumentException("URL musi pasować do wzorca `(api/mobile/.+)`: $path")
         return UrlEncoderUtil.encode(match.groupValues[0], "UTF-8").lowercase()
     }
 

@@ -1,32 +1,33 @@
 # Dzienniczek CLI
 
 [![CLI](https://github.com/MatissowyMati/Dzienniczek-CLI/actions/workflows/cli.yml/badge.svg)](https://github.com/MatissowyMati/Dzienniczek-CLI/actions/workflows/cli.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Licencja: MIT](https://img.shields.io/badge/licencja-MIT-blue.svg)](LICENSE)
 
-A standalone command-line client for Polish electronic school registers. It supports VULCAN, eduVULCAN, and Librus from Linux, macOS, and Windows through WSL. Output works equally well for people and shell-based agents such as Codex, Claude Code, OpenClaw, and Hermes.
+Samodzielny klient wiersza poleceń do polskich dzienników elektronicznych. Obsługuje VULCAN, eduVULCAN i Librus w systemach Linux, macOS oraz Windows przez WSL. Wyniki są czytelne zarówno dla człowieka, jak i dla agentów uruchamianych w terminalu, m.in. OpenAI Codex i Claude Code.
 
-This is an independent CLI project. Its protocol implementation was initially derived from [szponciciel04/DzienniczekSzpontniczek](https://github.com/szponciciel04/DzienniczekSzpontniczek) (support to Librus has been copied from [Szkolny.eu](https://github.com/szkolny-eu/szkolny-android)); that project is not bundled and remains a separate mobile application.
+To niezależny projekt CLI. Początkowa implementacja protokołów powstała na podstawie projektu [szponciciel04/DzienniczekSzpontniczek](https://github.com/szponciciel04/DzienniczekSzpontniczek), a obsługa Librusa korzysta z kodu projektu [Szkolny.eu](https://github.com/szkolny-eu/szkolny-android). Żaden z tych projektów nie jest dołączony do repozytorium; pozostają osobnymi aplikacjami.
 
-## Features
+## Możliwości
 
-- VULCAN token/PIN registration
-- eduVULCAN username/password login with proof-of-work captcha support
-- manual eduVULCAN JWT registration
-- Librus Portal login and linked Synergia account selection
-- multiple local profiles, pupils, and school periods
-- grades, averages, summaries, timetable, substitutions, exams, and homework
-- attendance with monthly and subject statistics
-- notes, announcements, messages, teachers, school information, trips, events, and vacations
-- meal menus, meetings, duties, kindergarten data, and lucky numbers
-- stable JSON output and exit codes for automation
-- `.env` loading without putting secrets on the command line
+- rejestracja VULCAN za pomocą tokenu i PIN-u;
+- logowanie nazwą użytkownika i hasłem do eduVULCAN, również z obsługą captchy z dowodem pracy;
+- ręczna rejestracja eduVULCAN za pomocą JWT;
+- logowanie przez Portal Librus i wybór powiązanego konta Synergia;
+- wiele lokalnych profili, uczniów i okresów szkolnych;
+- oceny, średnie, podsumowania, plan lekcji, zastępstwa, sprawdziany i zadania domowe;
+- frekwencja ze statystykami miesięcznymi i przedmiotowymi;
+- uwagi, ogłoszenia, wiadomości, nauczyciele, informacje o szkole, wycieczki, wydarzenia i dni wolne;
+- jadłospisy, zebrania, dyżury, dane przedszkolne i szczęśliwy numerek;
+- stabilny JSON i kody zakończenia przeznaczone do automatyzacji;
+- wczytywanie `.env` bez umieszczania sekretów w argumentach procesu;
+- lokalny serwer MCP przez stdio oraz gotowe umiejętności (skills) dla Codex i Claude Code.
 
-## Requirements
+## Wymagania
 
-- Java 17 or newer
-- macOS, Linux, or WSL
+- Java 17 lub nowsza;
+- macOS, Linux albo WSL.
 
-## Installation
+## Instalacja
 
 ### macOS
 
@@ -37,7 +38,7 @@ cd Dzienniczek-CLI
 ./scripts/install.sh
 ```
 
-### Linux or WSL
+### Linux lub WSL
 
 ```sh
 sudo apt-get update
@@ -47,62 +48,62 @@ cd Dzienniczek-CLI
 ./scripts/install.sh
 ```
 
-The installer places the application under `~/.local/lib` and its launcher in `~/.local/bin`. On Homebrew systems it also works through `/opt/homebrew/bin/dzienniczek` when linked there.
+Instalator zapisuje aplikację w `~/.local/lib`, a skrypt uruchamiający w `~/.local/bin`. Upewnij się, że `~/.local/bin` znajduje się w zmiennej `PATH`.
 
-Build without installing:
+Budowanie bez instalacji:
 
 ```sh
 ./gradlew :cli:installDist
 ./cli/build/install/dzienniczek/bin/dzienniczek version
 ```
 
-## Login from `.env`
+## Konfiguracja logowania przez `.env`
 
-Copy the safe template:
+Skopiuj bezpieczny szablon:
 
 ```sh
 cp .env.example .env
 chmod 600 .env
 ```
 
-For eduVULCAN:
+Przykład dla eduVULCAN:
 
 ```dotenv
 DZIENNICZEK_PROVIDER=eduvulcan
-DZIENNICZEK_USERNAME=your-login
-DZIENNICZEK_PASSWORD=your-password
-DZIENNICZEK_PROFILE=default
+DZIENNICZEK_USERNAME=twoj-login
+DZIENNICZEK_PASSWORD=twoje-haslo
+DZIENNICZEK_PROFILE=domyslny
 ```
 
-Then log in without passing secrets as arguments:
+Następnie sprawdź konfigurację i zaloguj się bez przekazywania sekretów w argumentach:
 
 ```sh
 dzienniczek env --json
 dzienniczek login
 ```
 
-`.env` is ignored by Git. External environment variables take precedence over values in the file. Use `--env-file PATH` for another file or `--no-env` to disable loading.
+Plik `.env` jest ignorowany przez Git. Zmienne środowiskowe procesu mają pierwszeństwo przed wartościami z pliku. Użyj `--env-file SCIEZKA`, aby wskazać inny plik, albo `--no-env`, aby wyłączyć jego wczytywanie.
 
-Legacy eduVULCAN keys `EDUVULCAN_LOGIN`, `EDUVULCAN_PASSWORD`, and `EDUVULCAN_PASSWRD` are also accepted. The misspelled `PASSWRD` alias exists for compatibility only.
+Obsługiwane są też starsze klucze eduVULCAN: `EDUVULCAN_LOGIN`, `EDUVULCAN_PASSWORD` i `EDUVULCAN_PASSWRD`. Błędnie zapisany alias `PASSWRD` pozostaje wyłącznie dla zgodności wstecznej.
 
-Other login modes:
+Pozostałe sposoby logowania:
 
 ```sh
-dzienniczek login vulcan --token TOKEN --pin PIN --symbol SCHOOL
+dzienniczek login vulcan --token TOKEN --pin PIN --symbol SZKOLA
 dzienniczek login jwt --tenant TENANT --token JWT
-dzienniczek login librus --username EMAIL --password PASSWORD
+dzienniczek login librus --username EMAIL --password HASLO
 ```
 
-## Quick start
+## Szybki start
 
-Check the installation and local configuration without contacting the school service:
+Sprawdź instalację i lokalną konfigurację bez łączenia się z usługą szkoły:
 
 ```sh
 dzienniczek doctor --format table
 dzienniczek env --format table
 ```
 
-Log in once, then query the active student:
+Zaloguj się raz, a potem wybierz ucznia:
 
 ```sh
 dzienniczek login --non-interactive
@@ -110,7 +111,7 @@ dzienniczek account list
 dzienniczek dashboard
 ```
 
-## Everyday usage
+## Codzienne użycie
 
 ```sh
 dzienniczek dashboard
@@ -125,60 +126,104 @@ dzienniczek notes
 dzienniczek announcements
 ```
 
-Profiles and pupils:
+Profile i uczniowie:
 
 ```sh
 dzienniczek profile list
-dzienniczek profile use NAME
+dzienniczek profile use NAZWA
 dzienniczek account list
-dzienniczek account use INDEX
+dzienniczek account use INDEKS
 ```
 
-See [the complete CLI reference](docs/cli.md) or run:
+Pełny opis znajduje się w [dokumentacji poleceń](docs/cli.md). Możesz też uruchomić:
 
 ```sh
 dzienniczek help
 dzienniczek capabilities --json
 ```
 
-## AI agents and automation
+## MCP dla Codex i Claude Code
 
-Use this invocation pattern for Codex, Claude Code, OpenClaw, Hermes, scripts, and CI:
+Repozytorium zawiera gotowe konfiguracje:
+
+- [`.codex/config.toml`](.codex/config.toml) dla OpenAI Codex;
+- [`.mcp.json`](.mcp.json) dla Claude Code;
+- [`.agents/skills/dzienniczek/SKILL.md`](.agents/skills/dzienniczek/SKILL.md) jako umiejętność repozytorium dla Codex;
+- [`.claude/skills/dzienniczek/SKILL.md`](.claude/skills/dzienniczek/SKILL.md) jako umiejętność projektu dla Claude Code.
+
+Po otwarciu repozytorium klient powinien wykryć serwer `dzienniczek`. Claude Code poprosi o zatwierdzenie projektu i serwera z `.mcp.json`. Skrypt startowy automatycznie zbuduje lokalną dystrybucję, jeśli jej brakuje lub kod źródłowy jest nowszy.
+
+Serwer można też uruchomić ręcznie:
 
 ```sh
-dzienniczek COMMAND --json --compact --non-interactive
+dzienniczek mcp
+# albo bez wcześniejszej instalacji:
+./scripts/dzienniczek-mcp.sh
 ```
 
-Start an integration by reading [`docs/AI_USAGE.txt`](docs/AI_USAGE.txt). It contains a copy-paste agent policy, safe configuration instructions, the output contract, command discovery, mutation rules, and examples. Agents should discover supported operations at runtime:
+MCP udostępnia jedno narzędzie `dzienniczek` ze ściśle określonym zestawem operacji tylko do odczytu. Celowo blokuje logowanie, wylogowanie, zmianę profilu lub konta, ustawienia push, modyfikacje wiadomości, zwracanie tokenu automatycznego logowania i usuwanie danych uwierzytelniających. Takie czynności trzeba wykonać bezpośrednio w CLI z wyraźną intencją użytkownika.
+
+Test dymny MCP:
+
+```sh
+./gradlew :cli:installDist
+python3 scripts/test-mcp.py
+```
+
+Test sprawdza negocjację wersji protokołu, listę narzędzi, bezpieczny odczyt `doctor` i blokadę polecenia mutującego. Korzysta z tymczasowego, pustego katalogu konfiguracji i nie dotyka prawdziwego profilu.
+
+## Agenci AI i automatyzacja
+
+Gdy MCP nie jest dostępne, używaj następującego wzorca w Codex, Claude Code, skryptach i CI:
+
+```sh
+dzienniczek POLECENIE --json --compact --non-interactive
+```
+
+Integrację zacznij od przeczytania pliku [`docs/AI_USAGE.txt`](docs/AI_USAGE.txt). Zawiera zasady bezpieczeństwa, kontrakt wyjścia, wykrywanie poleceń w czasie działania i przykłady. Agent powinien najpierw sprawdzić:
 
 ```sh
 dzienniczek doctor --json --compact --non-interactive
 dzienniczek capabilities --json --compact --non-interactive
 ```
 
-`--non-interactive` guarantees that missing input produces an error instead of a prompt. A piped invocation defaults to JSON, but agents should request JSON explicitly. Successful results go to stdout; errors go to stderr.
+Opcja `--non-interactive` gwarantuje, że brakujące dane spowodują błąd zamiast oczekiwania na wpis z terminala. Przy przekierowanym wyjściu domyślnym formatem jest JSON, ale w automatyzacji warto żądać go jawnie. Poprawny wynik trafia na stdout, a błędy na stderr.
 
-Exit codes:
+Kody zakończenia:
 
-| Code | Meaning |
+| Kod | Znaczenie |
 | ---: | --- |
-| 0 | Success |
-| 2 | Invalid command or arguments |
-| 3 | Authentication failed |
-| 4 | Network failure |
-| 5 | Remote API failure |
-| 6 | Local configuration failure |
-| 10 | Internal failure |
+| 0 | Sukces |
+| 2 | Nieprawidłowe polecenie lub argumenty |
+| 3 | Błąd uwierzytelniania |
+| 4 | Błąd sieci lub przekroczenie limitu czasu |
+| 5 | Błąd zdalnego API |
+| 6 | Błąd lokalnej konfiguracji |
+| 10 | Nieoczekiwany błąd wewnętrzny |
 
-Errors are emitted as JSON on stderr in non-interactive mode. Secrets are never included in normal output.
+W trybie nieinteraktywnym błędy są zapisywane jako JSON na stderr. Sekrety nie są częścią zwykłego wyjścia.
 
-## Documentation
+## Rozwój i testy
 
-- [Complete command reference](docs/cli.md)
-- [AI agent and automation guide](docs/AI_USAGE.txt)
-- [Security policy](SECURITY.md)
+Pełna lokalna weryfikacja:
 
-## Troubleshooting
+```sh
+./gradlew :cli:test :cli:installDist :cli:distTar
+python3 scripts/test-mcp.py
+sh -n scripts/install.sh scripts/uninstall.sh scripts/dzienniczek-launcher.sh scripts/dzienniczek-mcp.sh
+```
+
+Jeśli systemowe `java` jest starsze, ale OpenJDK 17 z Homebrew jest zainstalowane, uruchom Gradle tak:
+
+```sh
+JAVA_HOME=/opt/homebrew/opt/openjdk@17 \
+PATH=/opt/homebrew/opt/openjdk@17/bin:$PATH \
+./gradlew :cli:test
+```
+
+CI wykonuje budowanie i testy na Ubuntu oraz macOS.
+
+## Rozwiązywanie problemów
 
 ```sh
 dzienniczek doctor --json
@@ -186,17 +231,23 @@ dzienniczek env --json
 dzienniczek profile show --json
 ```
 
-Add `--debug` only while diagnosing a failure; traces may contain provider metadata. Use `--timeout 60` on slow networks. If the wrong child or school period is selected, use `account list`, `account use INDEX`, and `--period VALUE`.
+Dodaj `--debug` wyłącznie podczas lokalnej diagnostyki; ślady mogą zawierać metadane dostawcy. Na wolnym połączeniu użyj `--timeout 60`. Jeśli wybrano niewłaściwego ucznia lub okres, skorzystaj z `account list`, `account use INDEKS` oraz `--period WARTOSC`.
 
-## Security
+## Bezpieczeństwo
 
-- Never commit `.env` or exported profile configuration.
-- Prefer `.env` or injected environment variables over command-line password arguments.
-- Stored profiles are written to `${XDG_CONFIG_HOME:-~/.config}/dzienniczek/config.json` with owner-only permissions where supported.
-- Use `dzienniczek logout --yes` to remove a stored profile.
+- Nigdy nie zatwierdzaj w Git pliku `.env` ani wyeksportowanej konfiguracji profilu.
+- Preferuj `.env` lub wstrzyknięte zmienne środowiskowe zamiast haseł w argumentach procesu.
+- Profile są zapisywane w `${XDG_CONFIG_HOME:-~/.config}/dzienniczek/config.json` z uprawnieniami tylko dla właściciela, jeśli system plików je obsługuje.
+- `dzienniczek logout --yes` usuwa zapisany profil lokalny; nie odwołuje urządzenia po stronie dostawcy.
 
-See [SECURITY.md](SECURITY.md) for reporting security problems.
+Zasady zgłaszania problemów opisuje [SECURITY.md](SECURITY.md).
 
-## License and attribution
+## Dokumentacja
 
-MIT licensed. See [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+- [Pełna dokumentacja poleceń](docs/cli.md)
+- [Przewodnik dla agentów AI i automatyzacji](docs/AI_USAGE.txt)
+- [Polityka bezpieczeństwa](SECURITY.md)
+
+## Licencja i autorstwo
+
+Projekt jest udostępniany na licencji MIT. Zobacz [LICENSE](LICENSE) i [NOTICE.md](NOTICE.md).

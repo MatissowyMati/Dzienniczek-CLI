@@ -43,8 +43,8 @@ class LibrusApi(
     }
 
     /**
-     * Gets accounts associated with the portal account.
-     * Uses Portal API (portal.librus.pl/api)
+     * Pobiera konta powiązane z kontem portalu.
+     * Używa API portalu (portal.librus.pl/api).
      */
     suspend fun getSynergiaAccounts(): List<LibrusSynergiaAccount> {
         val responseText = httpClient.get("https://portal.librus.pl/api/v3/SynergiaAccounts") {
@@ -55,7 +55,7 @@ class LibrusApi(
     }
 
     /**
-     * Exchanges portal token for API token for a specific synergia account.
+     * Wymienia token portalu na token API dla wskazanego konta Synergii.
      */
     suspend fun getFreshApiToken(accountLogin: String): String {
         val responseText = httpClient.get("https://portal.librus.pl/api/v3/SynergiaAccounts/fresh/$accountLogin") {
@@ -63,7 +63,7 @@ class LibrusApi(
             header("X-Requested-With", LibrusConstants.HEADER)
         }.bodyAsText()
         val obj = json.parseToJsonElement(responseText).jsonObject
-        return obj["accessToken"]?.jsonPrimitive?.content ?: error("Failed to get fresh API token")
+        return obj["accessToken"]?.jsonPrimitive?.content ?: error("Nie udało się pobrać nowego tokenu API")
     }
 
     suspend fun getLuckyNumber(): Int {
@@ -79,7 +79,7 @@ class LibrusApi(
             header("Authorization", "Bearer $apiAccessToken")
         }.bodyAsText()
         val obj = json.parseToJsonElement(responseText).jsonObject
-        return obj["Token"]?.jsonPrimitive?.content ?: error("Failed to get auto login token")
+        return obj["Token"]?.jsonPrimitive?.content ?: error("Nie udało się pobrać tokenu automatycznego logowania")
     }
 
     suspend fun getSynergiaMessages(token: String, tab: LibrusMessageFolder): List<LibrusWebMessage> {
@@ -90,11 +90,11 @@ class LibrusApi(
         }
         val loginUrl = "https://synergia.librus.pl/loguj/token/$token/przenies/uczen/widok/wiadomosci/$folder"
         
-        // This request will set cookies and follow redirects
+        // To żądanie ustawi ciasteczka i podąży za przekierowaniami.
         val loginResponse = httpClient.get(loginUrl)
         val html = loginResponse.bodyAsText()
         
-        // If the login redirect doesn't lead us directly to the list, try fetching it explicitly
+        // Jeśli przekierowanie po logowaniu nie prowadzi do listy, pobierz ją bezpośrednio.
         val finalHtml = if (!html.contains("decorated stretch")) {
              httpClient.get("https://synergia.librus.pl/wiadomosci/$folder").bodyAsText()
         } else html
@@ -108,7 +108,7 @@ class LibrusApi(
             
             val link = cells[3].select("a").first() ?: return@forEach
             val url = link.attr("href")
-            // URL might be /wiadomosci/1/5/12345/f0 or similar
+            // Adres może mieć postać /wiadomosci/1/5/12345/f0 lub podobną.
             val id = "/([0-9]+)/".toRegex().find(url)?.groupValues?.get(1) ?: url.substringAfterLast("/")
             val subject = link.text().trim()
             val sender = cells[2].text().substringBefore("(").trim()
@@ -141,7 +141,7 @@ class LibrusApi(
     }
 
     suspend fun getSynergiaMessageContent(id: String): String {
-        // Try received messages first, then sent if it fails or returns empty
+        // Najpierw sprawdź odebrane, a po błędzie lub pustym wyniku — wysłane.
         val receivedUrl = "https://synergia.librus.pl/wiadomosci/1/5/$id/f0"
         val sentUrl = "https://synergia.librus.pl/wiadomosci/1/6/$id/f0"
         
@@ -155,7 +155,7 @@ class LibrusApi(
             content = doc.select(".container-message-content").html().trim()
         }
 
-        // Strip HTML tags for simple view, or keep if we want rich text
+        // Usuń znaczniki HTML z prostego widoku; zachowaj je dla tekstu sformatowanego.
         return content.replace("<br>", "\n").replace("<[^>]*>".toRegex(), "").trim()
     }
 

@@ -18,4 +18,4 @@ class ConstraintViolationException(message: String) : DzienniczekApiException(me
 class InvalidParameterValueException(message: String) : DzienniczekApiException(message)
 class MissingUnitSymbolException(message: String) : DzienniczekApiException(message)
 class InternalServerErrorException(message: String) : DzienniczekApiException(message)
-class ResponseInvalidContentTypeException : DzienniczekApiException("Invalid content type in response")
+class ResponseInvalidContentTypeException : DzienniczekApiException("Nieprawidłowy typ treści w odpowiedzi")

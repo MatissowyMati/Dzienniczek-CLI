@@ -85,8 +85,8 @@ class PrometheusLoginHelper {
         password: String,
         @Suppress("UNUSED_PARAMETER") deviceModel: String,
     ): PrometheusLoginResult {
-        require(login.isNotBlank()) { "Login must not be blank" }
-        require(password.isNotBlank()) { "Password must not be blank" }
+        require(login.isNotBlank()) { "Login nie może być pusty" }
+        require(password.isNotBlank()) { "Hasło nie może być puste" }
 
         // 1. Sprawdzenie czy captcha jest wymagana
         val showCaptcha = queryUserInfo(login)
@@ -115,10 +115,10 @@ class PrometheusLoginHelper {
 
         val loginBody = loginResponse.bodyAsText()
         if (loginBody.contains("robot", ignoreCase = true) || loginBody.contains("robak", ignoreCase = true)) {
-            throw IllegalStateException("Captcha validation failed — ochrona przed robotami")
+            throw IllegalStateException("Weryfikacja captcha nie powiodła się — ochrona przed robotami")
         }
         if (loginResponse.headers[HttpHeaders.Location] == null) {
-            throw IllegalStateException("Invalid credentials")
+            throw IllegalStateException("Nieprawidłowe dane logowania")
         }
 
         // 4. Pobranie danych z /api/ap — cookies są wysyłane automatycznie przez HttpCookies
