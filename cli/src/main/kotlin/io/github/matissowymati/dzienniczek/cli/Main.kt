@@ -1,7 +1,9 @@
 package io.github.matissowymati.dzienniczek.cli
 
-import io.github.matissowymati.dzienniczek.api.hebe.VulcanApi
+import io.github.matissowymati.dzienniczek.api.hebe.DzienniczekApiException
 import io.github.matissowymati.dzienniczek.api.hebe.EduVulcanApi
+import io.github.matissowymati.dzienniczek.api.hebe.FailedRequestException
+import io.github.matissowymati.dzienniczek.api.hebe.VulcanApi
 import io.github.matissowymati.dzienniczek.api.hebe.credentials.RsaCredential
 import io.github.matissowymati.dzienniczek.api.hebe.models.Account
 import io.github.matissowymati.dzienniczek.api.librus.LibrusLoginHelper
@@ -432,15 +434,16 @@ private fun printHelp() = println(
     """.trimIndent()
 )
 
-private fun classify(error: Throwable): Int {
+internal fun classify(error: Throwable): Int {
     val name = error::class.qualifiedName.orEmpty()
     val message = error.message.orEmpty()
     return when {
         "WrongPin" in name || "WrongToken" in name || "Invalid credentials" in message || "Login failed" in message ||
             "Nieprawidłowe dane logowania" in message || "Logowanie nie powiodło się" in message ||
             message.contains("captcha", ignoreCase = true) -> Exit.AUTH
-        "ktor" in name || "timeout" in message.lowercase() || "connect" in message.lowercase() -> Exit.NETWORK
-        "Dzienniczek" in name || "Status" in name || "API" in message -> Exit.API
+        error is FailedRequestException || "ktor" in name || "timeout" in message.lowercase() ||
+            "connect" in message.lowercase() -> Exit.NETWORK
+        error is DzienniczekApiException || "Dzienniczek" in name || "Status" in name || "API" in message -> Exit.API
         else -> Exit.INTERNAL
     }
 }
