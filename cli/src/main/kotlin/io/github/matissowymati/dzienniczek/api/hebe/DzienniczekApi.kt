@@ -4,6 +4,7 @@ import io.github.matissowymati.dzienniczek.api.hebe.credentials.ICredential
 import io.github.matissowymati.dzienniczek.api.hebe.models.*
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
@@ -13,6 +14,9 @@ import kotlinx.serialization.json.putJsonArray
 private val EPOCH_START_DATETIME = LocalDateTime(1970, 1, 1, 1, 0, 0)
 private const val INT_MIN = Int.MIN_VALUE
 private const val DEFAULT_PAGE_SIZE = 500
+
+internal fun decodeLuckyNumber(envelope: JsonElement?): LuckyNumber? =
+    envelope?.let { apiJson.decodeFromJsonElement<LuckyNumber>(it) }
 
 open class DzienniczekApi(
     protected val credential: ICredential,
@@ -291,7 +295,7 @@ open class DzienniczekApi(
         pupilId: Int,
         constituentUnitId: Int,
         day: LocalDate = LocalDate.fromEpochDays(0)
-    ): LuckyNumber {
+    ): LuckyNumber? {
         val envelope = vulcanHttpClient.request(
             method = "GET",
             restUrl = restUrl,
@@ -303,7 +307,7 @@ open class DzienniczekApi(
             ),
             pupilId = pupilId
         )
-        return apiJson.decodeFromJsonElement(envelope!!)
+        return decodeLuckyNumber(envelope)
     }
 
     suspend fun getMealMenu(
@@ -646,9 +650,15 @@ open class DzienniczekApi(
     }
 
     suspend fun getTimeslots(pupilId: Int? = null): List<Timeslot> {
+        val restUrl = credential.restUrl
+            ?: error("Nie ustawiono restUrl — najpierw zarejestruj urządzenie")
+        return getTimeslots(restUrl, pupilId)
+    }
+
+    suspend fun getTimeslots(restUrl: String, pupilId: Int? = null): List<Timeslot> {
         val envelope = vulcanHttpClient.request(
             method = "GET",
-            restUrl = credential.restUrl ?: error("Nie ustawiono restUrl — najpierw zarejestruj urządzenie"),
+            restUrl = restUrl,
             endpoint = "mobile/dictionary/timeslot",
             query = mapOf("pupilId" to pupilId),
             pupilId = pupilId

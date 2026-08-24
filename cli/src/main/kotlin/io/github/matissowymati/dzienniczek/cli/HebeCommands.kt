@@ -106,7 +106,7 @@ suspend fun runHebeCommand(command: String, subcommand: String?, args: CliArgs, 
         "schedule-extra" -> encoded(api.getScheduleExtra(account.unit.restUrl, account.pupil.id, from, to, pageSize = pageSize))
         "school-info" -> encoded(api.getSchoolInfo(account.unit.restUrl, account.pupil.id))
         "teachers" -> encoded(api.getTeachers(account.unit.restUrl, period.id, account.pupil.id, pageSize = pageSize))
-        "timeslots" -> encoded(api.getTimeslots(account.pupil.id))
+        "timeslots" -> encoded(api.getTimeslots(account.unit.restUrl, account.pupil.id))
         "trips" -> encoded(api.getTrips(account.unit.restUrl, account.pupil.id, from, to))
         "events" -> encoded(api.getUserEvents(account.unit.restUrl, account.pupil.id))
         "vacations" -> encoded(api.getVacations(account.unit.restUrl, account.pupil.id, from, to, pageSize = pageSize))
