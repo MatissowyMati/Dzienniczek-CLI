@@ -5,7 +5,7 @@
 
 Samodzielny klient wiersza poleceń do polskich dzienników elektronicznych. Obsługuje VULCAN, eduVULCAN i Librus w systemach Linux, macOS oraz Windows przez WSL. Wyniki są czytelne zarówno dla człowieka, jak i dla agentów uruchamianych w terminalu, m.in. OpenAI Codex i Claude Code.
 
-To niezależny projekt CLI. Początkowa implementacja protokołów powstała na podstawie projektu [szponciciel04/DzienniczekSzpontniczek](https://github.com/szponciciel04/DzienniczekSzpontniczek), a obsługa Librusa korzysta z kodu projektu [Szkolny.eu](https://github.com/szkolny-eu/szkolny-android). Żaden z tych projektów nie jest dołączony do repozytorium; pozostają osobnymi aplikacjami.
+Implementacja protokołów powstała na podstawie projektu [szponciciel04/DzienniczekSzpontniczek](https://github.com/szponciciel04/DzienniczekSzpontniczek), a obsługa Librusa korzysta z kodu projektu [Szkolny.eu](https://github.com/szkolny-eu/szkolny-android).
 
 ## Możliwości
 
