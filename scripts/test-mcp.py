@@ -3,8 +3,11 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
+import select
+import time
 import subprocess
 import tempfile
 from pathlib import Path
@@ -20,24 +23,45 @@ def rpc(process: subprocess.Popen[str], payload: dict[str, Any]) -> dict[str, An
     assert process.stdout is not None
     process.stdin.write(json.dumps(payload) + "\n")
     process.stdin.flush()
-    while line := process.stdout.readline():
+    deadline = time.monotonic() + 130
+    while True:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or not select.select([process.stdout], [], [], max(0, remaining))[0]:
+            raise TimeoutError("Serwer MCP nie odpowiedział w ciągu 130 sekund")
+        line = process.stdout.readline()
+        if not line:
+            raise RuntimeError("Serwer MCP zakończył pracę przed odpowiedzią")
         response = json.loads(line)
         if response.get("id") == payload.get("id"):
             return response
-    stderr = process.stderr.read() if process.stderr else ""
-    raise RuntimeError(f"Serwer MCP zakończył pracę przed odpowiedzią: {stderr}")
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--codex", action="store_true", help="Uruchom serwer z konfiguracji wykrytej przez Codex.")
+    args = parser.parse_args()
+    command = [str(SERVER)]
+    if args.codex:
+        configured = subprocess.run(["codex", "mcp", "get", "dzienniczek", "--json"],
+                                    cwd=PROJECT, capture_output=True, text=True, timeout=30, check=True)
+        server = json.loads(configured.stdout)
+        assert server["enabled"] is True
+        transport = server["transport"]
+        assert transport["type"] == "stdio"
+        command = [transport["command"], *transport["args"]]
     if not SERVER.is_file():
         raise SystemExit("Nie znaleziono skryptu scripts/dzienniczek-mcp.sh")
 
     with tempfile.TemporaryDirectory(prefix="dzienniczek-mcp-test-") as temporary:
         environment = os.environ.copy()
         environment["XDG_CONFIG_HOME"] = str(Path(temporary) / "config")
+        for key in list(environment):
+            if key.startswith(("DZIENNICZEK_", "VULCAN_", "EDUVULCAN_", "LIBRUS_")):
+                environment.pop(key)
+        config = str(Path(temporary) / "isolated.json")
         process = subprocess.Popen(
-            [str(SERVER), "--no-env"],
-            cwd=temporary,
+            command + ["--no-env", "--config", config],
+            cwd=PROJECT / "cli" if args.codex else temporary,
             env=environment,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
@@ -95,7 +119,12 @@ def main() -> None:
             assert initialized["result"]["protocolVersion"] == "2025-06-18"
             assert [tool["name"] for tool in tools["result"]["tools"]] == ["dzienniczek"]
             assert doctor["result"].get("isError", False) is False
-            assert doctor["result"]["structuredContent"]["runtime"]["javaSupported"] is True
+            health = doctor["result"]["structuredContent"]
+            assert health["runtime"]["javaSupported"] is True
+            assert health["configPath"] == config
+            assert health["hasUsableProfile"] is False
+            assert health["profiles"] == 0
+            assert health["envFileLoaded"] is False
             advertised_commands = tools["result"]["tools"][0]["inputSchema"]["properties"]["polecenie"]["enum"]
             runtime_commands = capabilities["result"]["structuredContent"]["mcpReadOnlyCommands"]
             assert advertised_commands == runtime_commands
@@ -111,7 +140,7 @@ def main() -> None:
                 process.kill()
                 process.wait(timeout=5)
 
-    print("MCP: inicjalizacja, lista narzędzi, odczyt, spójność możliwości i blokada mutacji działają poprawnie.")
+    print(("Codex + " if args.codex else "") + "MCP: inicjalizacja, lista narzędzi, odczyt, spójność możliwości i blokada mutacji działają poprawnie.")
 
 
 if __name__ == "__main__":

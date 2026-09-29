@@ -23,8 +23,9 @@ class EnvironmentTest {
         assertTrue(Env.available("DZIENNICZEK_PASSWORD"))
         assertEquals("test-value", Env.get("DZIENNICZEK_TEST_ONLY"))
 
-        Env.load(arrayOf("--no-env"))
+        Env.load(arrayOf("--no-env=true", "--env-file", "/missing/example.env"))
         assertFalse(Env.available("DZIENNICZEK_TEST_ONLY"))
         assertEquals(null, Env.loadedPath)
+        Files.deleteIfExists(file)
     }
 }

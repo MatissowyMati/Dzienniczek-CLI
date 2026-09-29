@@ -50,7 +50,7 @@ fun main(raw: Array<String>) {
 
 private suspend fun execute(args: CliArgs) {
     val command = args.words.firstOrNull() ?: "help"
-    if (command in setOf("help", "-h", "--help")) {
+    if (args.flag("help") || "-h" in args.words || command == "help") {
         printHelp()
         return
     }
@@ -67,7 +67,7 @@ private suspend fun execute(args: CliArgs) {
         return
     }
     if (command == "mcp") {
-        runMcpServer()
+        runMcpServer(args)
         return
     }
 
@@ -297,7 +297,7 @@ private fun accountSummary(index: Int, account: Account) = buildJsonObject {
     put("index", index); put("pupilId", account.pupil.id)
     put("student", "${account.pupil.firstName} ${account.pupil.surname}")
     put("class", account.classDisplay ?: ""); put("school", account.unit.displayName)
-    put("currentPeriod", account.periods.firstOrNull { it.current }?.id)
+    put("currentPeriod", account.periods.takeIf { it.isNotEmpty() }?.let { resolvePeriod(it, null).id })
 }
 
 private fun capabilities() = buildJsonObject {

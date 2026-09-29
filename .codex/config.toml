@@ -1,6 +1,6 @@
 [mcp_servers.dzienniczek]
 command = "sh"
-args = ["-c", 'exec "$(git rev-parse --show-toplevel)/scripts/dzienniczek-mcp.sh"']
+args = ["-c", 'exec "$(git rev-parse --show-toplevel)/scripts/dzienniczek-mcp.sh" "$@"', "dzienniczek-mcp"]
 startup_timeout_sec = 120
 tool_timeout_sec = 130
 enabled = true

@@ -52,6 +52,20 @@ class CliArgs(tokens: List<String>) {
     }
 
     fun validate() {
+        val allowed = setOf(
+            "json", "compact", "debug", "yes", "all", "brief", "hebe", "api", "no-store-password",
+            "no-env", "non-interactive", "help", "format", "profile", "account", "period", "from", "to",
+            "config", "env-file", "timeout", "username", "password", "token", "pin", "symbol", "tenant",
+            "device", "librus-account", "name", "page-size", "day", "week", "box", "id", "last-id",
+            "weak-ref-id", "type", "important", "status", "locale", "enabled", "option"
+        )
+        (values.keys + switches + missingValues).firstOrNull { it !in allowed }?.let {
+            throw CliError("Nieznana opcja '--$it'; uruchom 'dzienniczek help'", Exit.USAGE)
+        }
+        value("format")?.let {
+            if (it !in setOf("json", "table", "plain")) throw CliError("Nieznany format '$it' (użyj json, table albo plain)", Exit.USAGE)
+        }
+        positiveInt("timeout", 30)
         missingValues.firstOrNull()?.let { name ->
             throw CliError("--$name wymaga wartości", Exit.USAGE)
         }

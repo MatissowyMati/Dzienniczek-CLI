@@ -39,6 +39,22 @@ class McpServerTest {
     }
 
     @Test
+    fun rejectsInvalidTypesAndUnknownFieldsAsUsageErrors() {
+        for (invalid in listOf(
+            buildJsonObject { put("polecenie", "grades"); put("rozmiarStrony", "many") },
+            buildJsonObject { put("polecenie", "grades"); put("skrot", "true") },
+            buildJsonObject { put("polecenie", "grades"); put("profil", buildJsonObject {}) },
+            buildJsonObject { put("polecenie", "grades"); put("password", "example") },
+        )) assertEquals(Exit.USAGE, assertFailsWith<CliError> { mcpCliArguments(invalid) }.code)
+    }
+
+    @Test
+    fun forwardsLaunchConfigurationWithoutCredentials() {
+        assertEquals(listOf("--config", "/tmp/test.json", "--profile", "test", "--no-env"),
+            mcpLaunchArguments(CliArgs(listOf("mcp", "--no-env", "--config", "/tmp/test.json", "--profile", "test"))))
+    }
+
+    @Test
     fun rejectsLimitsOutsideTheDocumentedRange() {
         assertFailsWith<CliError> {
             mcpCliArguments(buildJsonObject {
