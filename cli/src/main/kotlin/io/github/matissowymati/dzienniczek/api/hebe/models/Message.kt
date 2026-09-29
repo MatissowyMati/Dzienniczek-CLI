@@ -9,7 +9,7 @@ import kotlinx.serialization.UseSerializers
 
 @Serializable
 data class MessageAddressExtras(
-    @SerialName("DisplayedClass") val displayedClass: String
+    @SerialName("DisplayedClass") val displayedClass: String? = null
 )
 
 @Serializable
@@ -24,14 +24,14 @@ data class MessageAddress(
 data class Message(
     @SerialName("Id") val id: String,
     @SerialName("GlobalKey") val globalKey: String,
-    @SerialName("ThreadKey") val threadKey: String,
-    @SerialName("Subject") val subject: String,
-    @SerialName("Content") val content: String,
+    @SerialName("ThreadKey") val threadKey: String? = null,
+    @SerialName("Subject") val subject: String? = null,
+    @SerialName("Content") val content: String? = null,
     @SerialName("SentAt") val sentAt: LocalDateTime,
     @SerialName("ReadAt") val readAt: LocalDateTime? = null,
-    @SerialName("Status") val status: Int,
-    @SerialName("Sender") val sender: MessageAddress,
-    @SerialName("Receiver") val receiver: List<MessageAddress>,
-    @SerialName("Attachments") val attachments: List<Attachment>,
-    @SerialName("Withdrawn") val withdrawn: Boolean
+    @SerialName("Status") val status: Int? = null,
+    @SerialName("Sender") val sender: MessageAddress? = null,
+    @SerialName("Receiver") val receiver: List<MessageAddress> = emptyList(),
+    @SerialName("Attachments") val attachments: List<Attachment> = emptyList(),
+    @SerialName("Withdrawn") val withdrawn: Boolean = false
 )

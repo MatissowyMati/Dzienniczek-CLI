@@ -28,10 +28,10 @@ data class PrometheusMessageDetails(
 
 @Serializable
 data class PrometheusAttachment(
-    val url: String,
-    val idZalacznik: Int,
-    val nazwaPliku: String,
-    val idOneDrive: String
+    val url: String? = null,
+    val idZalacznik: Int? = null,
+    val nazwaPliku: String? = null,
+    val idOneDrive: String? = null
 )
 
 @Serializable

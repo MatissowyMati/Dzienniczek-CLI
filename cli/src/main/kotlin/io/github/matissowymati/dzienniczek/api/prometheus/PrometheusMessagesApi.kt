@@ -105,23 +105,29 @@ class PrometheusMessagesApi(
         authorizePrometheus(authorizeUrl)
         
         // Pobierz tokeny z aplikacji.
-        val appScript = Ksoup.parse(httpClient.get("$messagesBaseUrl/$tenant/App").bodyAsText())
-            .select("script").firstOrNull()?.html() ?: ""
+        val appHtml = httpClient.get("$messagesBaseUrl/$tenant/App").bodyAsText()
             
-        antiForgeryToken = Regex("antiForgeryToken: '(.*?)'").find(appScript)?.groupValues?.get(1) ?: ""
-        appGuid = Regex("appGuid: '(.*?)'").find(appScript)?.groupValues?.get(1) ?: ""
+        antiForgeryToken = Regex("antiForgeryToken: '(.*?)'").find(appHtml)?.groupValues?.get(1) ?: ""
+        appGuid = Regex("appGuid: '(.*?)'").find(appHtml)?.groupValues?.get(1) ?: ""
         
         isInitialized = true
     }
     
-    private suspend fun authorizePrometheus(url: String) {
-        val response1 = httpClient.get(url)
-        val document = Ksoup.parse(response1.bodyAsText())
-        val res1 = findAndSubmitForm(document)
-            ?: throw IllegalStateException("Błąd SSO pod adresem $url — nie znaleziono formularza. Tytuł strony: ${document.title()}")
-        val doc2 = Ksoup.parse(res1.bodyAsText())
-        findAndSubmitForm(doc2)
-            ?: throw IllegalStateException("Błąd SSO w formularzu dodatkowym — nie znaleziono formularza. Tytuł strony: ${doc2.title()}")
+    private suspend fun authorizePrometheus(url: String, maxHops: Int = 5) {
+        val response = httpClient.get(url)
+        var document = Ksoup.parse(response.bodyAsText())
+        var formsSubmitted = 0
+        while (formsSubmitted < maxHops) {
+            val nextResponse = findAndSubmitForm(document) ?: break
+            formsSubmitted++
+            document = Ksoup.parse(nextResponse.bodyAsText())
+        }
+        if (formsSubmitted == 0) {
+            throw IllegalStateException("Błąd SSO pod adresem $url — nie znaleziono formularza. Tytuł strony: ${document.title()}")
+        }
+        if (formsSubmitted >= maxHops && document.forms().isNotEmpty()) {
+            throw IllegalStateException("Zbyt wiele przekierowań formularzy SSO pod adresem $url (przekroczono limit $maxHops). Tytuł strony: ${document.title()}")
+        }
     }
     
     private suspend fun findAndSubmitForm(document: Document): HttpResponse? {
