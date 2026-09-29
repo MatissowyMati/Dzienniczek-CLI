@@ -17,6 +17,14 @@ class ArgsTest {
     }
 
     @Test
+    fun rejectsTyposAndInvalidOutputBeforeAnyNetworkRequest() {
+        assertFailsWith<CliError> { CliArgs(listOf("grades", "--formta", "table")).validate() }
+        assertFailsWith<CliError> { CliArgs(listOf("grades", "--format", "csv")).validate() }
+        assertFailsWith<CliError> { CliArgs(listOf("doctor", "--timeout", "0")).validate() }
+        CliArgs(listOf("grades", "--help")).validate()
+    }
+
+    @Test
     fun supportsEndOfOptions() {
         val args = CliArgs(listOf("profile", "use", "--", "--odd-name"))
         assertEquals(listOf("profile", "use", "--odd-name"), args.words)

@@ -2,6 +2,7 @@ package io.github.matissowymati.dzienniczek.cli
 
 import io.github.matissowymati.dzienniczek.api.hebe.DzienniczekApi
 import io.github.matissowymati.dzienniczek.api.hebe.models.Account
+import io.github.matissowymati.dzienniczek.api.hebe.models.Period
 import io.github.matissowymati.dzienniczek.api.prometheus.PrometheusMessagesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -27,20 +28,28 @@ fun resolveAccount(profile: Profile, selector: String?): Account {
     } ?: throw CliError("Nie znaleziono konta '$selector'", Exit.USAGE)
 }
 
-private fun resolvePeriod(account: Account, selector: String?) = when {
-    selector == null -> account.periods.firstOrNull { it.current } ?: account.periods.lastOrNull()
+internal fun resolvePeriod(
+    periods: List<Period>,
+    selector: String?,
+    today: LocalDate = LocalDate.parse(java.time.LocalDate.now().toString()),
+) = when {
+    selector == null -> periods.filter { today >= it.start && today <= it.end }.maxByOrNull { it.start }
+        ?: periods.firstOrNull { it.current } ?: periods.maxByOrNull { it.start }
     else -> selector.toIntOrNull()?.let { number ->
-        account.periods.firstOrNull { it.id == number }
-            ?: account.periods.firstOrNull { it.number == number }
-            ?: account.periods.getOrNull(number)
+        periods.firstOrNull { it.id == number }
+            ?: periods.filter { it.number == number }.maxByOrNull { it.start }
+            ?: periods.getOrNull(number)
     }
-} ?: throw CliError("Nie znaleziono okresu '${selector ?: "bieżący"}'", Exit.USAGE)
+} ?: throw CliError("Nie znaleziono okresu '${selector ?: "bieżący"}'; sprawdź 'dzienniczek periods'", Exit.USAGE)
 
-private fun dates(args: CliArgs): Pair<LocalDate, LocalDate> {
+internal fun dates(args: CliArgs): Pair<LocalDate, LocalDate> {
     val today = java.time.LocalDate.now()
     val monday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-    val from = args.value("from")?.let(::parseDate) ?: LocalDate.parse(monday.toString())
-    val to = args.value("to")?.let(::parseDate) ?: LocalDate.parse(monday.plusDays(6).toString())
+    val suppliedFrom = args.value("from")?.let(::parseDate)
+    val suppliedTo = args.value("to")?.let(::parseDate)
+    val from = suppliedFrom ?: suppliedTo?.let { LocalDate.parse(java.time.LocalDate.parse(it.toString()).minusDays(6).toString()) }
+        ?: LocalDate.parse(monday.toString())
+    val to = suppliedTo ?: LocalDate.parse(java.time.LocalDate.parse(from.toString()).plusDays(6).toString())
     if (to < from) throw CliError("--to nie może być wcześniejsze niż --from", Exit.USAGE)
     return from to to
 }
@@ -58,13 +67,16 @@ private fun box(account: Account, args: CliArgs): String = args.value("box")
 suspend fun runHebeCommand(command: String, subcommand: String?, args: CliArgs, ctx: HebeContext): JsonElement {
     val api = ctx.api
     val account = ctx.account
-    val period = resolvePeriod(account, args.value("period"))
+    val period by lazy { resolvePeriod(account.periods, args.value("period")) }
     val (from, to) = dates(args)
     val pageSize = args.positiveInt("page-size", 500)
     return when (command) {
         "dashboard", "summary" -> dashboard(api, account, period.id)
         "accounts" -> encoded(ctx.profile.accounts)
-        "periods" -> encoded(account.periods)
+        "periods" -> {
+            val current = account.periods.takeIf { it.isNotEmpty() }?.let { resolvePeriod(it, null).id }
+            encoded(account.periods.map { it.copy(current = it.id == current) })
+        }
         "heartbeat" -> { api.makeHeartbeat(account.unit.restUrl, account.pupil.id); success("Wysłano heartbeat") }
         "addressbook" -> encoded(api.getAddressbook(account.unit.restUrl, box(account, args), account.pupil.id))
         "announcements" -> encoded(api.getAnnouncements(account.unit.restUrl, account.unit.id, account.pupil.id, pageSize = pageSize))

@@ -21,7 +21,11 @@ Nazwy poleceń i opcji pozostają po angielsku, aby zachować stabilny interfejs
 | `--timeout SEKUNDY` | Ustawia dodatni limit czasu sieci; domyślnie 30 sekund |
 | `--debug` | Dołącza ślad diagnostyczny do błędu JSON |
 
-Domyślny zakres dat obejmuje bieżący tydzień od poniedziałku do niedzieli. `--page-size` musi być dodatnie. `--last-id` nie może być ujemne. Brak wartości po opcji, np. samo `--timeout`, jest błędem użycia.
+Domyślny zakres dat obejmuje bieżący tydzień od poniedziałku do niedzieli. Dla VULCAN i eduVULCAN samo `--from` ustawia siedem dni od wskazanej daty, a samo `--to` — siedem dni kończących się tą datą. Bieżący okres jest wybierany według dat, z flagą dostawcy jako opcją zapasową. Numer semestru wskazuje najnowszy dostępny rok; identyfikator okresu ma pierwszeństwo. `--page-size` musi być dodatnie. `--last-id` nie może być ujemne. Brak wartości po opcji, np. samo `--timeout`, jest błędem użycia. Nieznane opcje i formaty są odrzucane przed odczytem danych. `--help` i `-h` wyświetlają pomoc także po nazwie polecenia, bez połączenia z dostawcą.
+
+## Widoki terminalowe
+
+`--format table` pokazuje polskie nagłówki, daty, przedmioty, oceny, godziny i szczegóły zastępstw. Treści są zawijane. Szerokość jest odczytywana z terminalu lub nadpisana przez `COLUMNS` (40–180, awaryjnie 100); w wąskim widoku rekordy są prezentowane pionowo. `--format plain` pokazuje wszystkie pola bez ucinania. Przy przekierowanym stdout domyślny format pozostaje JSON.
 
 ## Zmienne środowiskowe
 
@@ -149,11 +153,15 @@ Narzędzie MCP nazywa się `dzienniczek`. Przyjmuje pole `polecenie` i opcjonaln
 
 Lista `polecenie` jest zamknięta i obejmuje wyłącznie odczyt. Serwer nie przyjmuje dowolnych argumentów powłoki, nie uruchamia poleceń przez powłokę i blokuje wszystkie znane operacje mutujące oraz sekrety. Wynik zawiera tekstowy JSON dla zgodności z klientami oraz `structuredContent`. Dokładną listę zwraca pole `mcpReadOnlyCommands` polecenia `capabilities`.
 
+Opcje startowe `--config`, `--env-file`, `--no-env`, `--profile`, `--account`, `--period` i `--timeout` są przekazywane do wywołań CLI. Parametry narzędzia mogą nadpisać wybór profilu, konta, okresu i limitu czasu. Błędne typy i nieznane pola zwracają błąd użycia.
+
 Test protokołu:
 
 ```sh
 ./gradlew :cli:installDist
 python3 scripts/test-mcp.py
+# Wykrycie konfiguracji przez zainstalowany Codex CLI i start serwera:
+python3 scripts/test-mcp.py --codex
 ```
 
 ## Kontrakt wyjścia

@@ -20,12 +20,11 @@ import kotlinx.io.buffered
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.add
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
-import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import java.nio.file.Path
@@ -91,7 +90,15 @@ internal val MCP_READ_ONLY_COMMANDS = sortedSetOf(
 
 private val mcpJson = Json { ignoreUnknownKeys = true }
 
-internal suspend fun runMcpServer() {
+internal fun mcpLaunchArguments(args: CliArgs): List<String> = buildList {
+    for (option in listOf("config", "env-file", "profile", "account", "period", "timeout")) {
+        args.value(option)?.let { add("--$option"); add(it) }
+    }
+    if (args.flag("no-env")) add("--no-env")
+}
+
+internal suspend fun runMcpServer(args: CliArgs) {
+    val launchArguments = mcpLaunchArguments(args)
     // STDIO przeznacza całe stdout na JSON-RPC; komunikat startowy biblioteki uszkodziłby protokół.
     System.setProperty("kotlin-logging.logStartupMessage", "false")
     val server = Server(
@@ -126,7 +133,7 @@ internal suspend fun runMcpServer() {
         ),
     ) { request ->
         try {
-            invokeCliForMcp(request.arguments ?: buildJsonObject {})
+            invokeCliForMcp(request.arguments ?: buildJsonObject {}, launchArguments)
         } catch (error: CliError) {
             mcpError(error.message ?: "Nieprawidłowe wywołanie", error.code)
         } catch (error: Exception) {
@@ -208,6 +215,11 @@ private fun kotlinx.serialization.json.JsonObjectBuilder.booleanProperty(name: S
 }
 
 internal fun mcpCliArguments(arguments: JsonObject): List<String> {
+    val allowed = setOf("polecenie", "profil", "konto", "okres", "od", "do", "dzien", "tydzien",
+        "identyfikator", "skrzynka", "weakRefId", "typ", "rozmiarStrony", "ostatnieId", "limitCzasu", "skrot", "hebe", "api")
+    arguments.keys.firstOrNull { it !in allowed }?.let {
+        throw CliError("Nieznane pole MCP '$it'", Exit.USAGE)
+    }
     val command = arguments.string("polecenie")
         ?.trim()
         ?.replace(Regex("\\s+"), " ")
@@ -262,17 +274,32 @@ internal fun mcpCliArguments(arguments: JsonObject): List<String> {
     return result
 }
 
-private fun JsonObject.string(name: String): String? = get(name)?.jsonPrimitive?.contentOrNull
+private fun JsonObject.string(name: String): String? = get(name)?.let {
+    if (it !is JsonPrimitive || !it.isString) {
+        throw CliError("Pole '$name' musi być tekstem", Exit.USAGE)
+    }
+    it.content
+}
 
-private fun JsonObject.integer(name: String): Int? = get(name)?.jsonPrimitive?.intOrNull
+private fun JsonObject.integer(name: String): Int? = get(name)?.let {
+    if (it !is JsonPrimitive || it.isString || it.intOrNull == null) {
+        throw CliError("Pole '$name' musi być liczbą całkowitą", Exit.USAGE)
+    }
+    it.intOrNull
+}
 
-private fun JsonObject.boolean(name: String): Boolean? = get(name)?.jsonPrimitive?.booleanOrNull
+private fun JsonObject.boolean(name: String): Boolean? = get(name)?.let {
+    if (it !is JsonPrimitive || it.isString || it.booleanOrNull == null) {
+        throw CliError("Pole '$name' musi mieć wartość true albo false", Exit.USAGE)
+    }
+    it.booleanOrNull
+}
 
 private data class ProcessResult(val code: Int, val stdout: String, val stderr: String)
 
-private suspend fun invokeCliForMcp(arguments: JsonObject): CallToolResult {
-    val cliArguments = mcpCliArguments(arguments)
-    val timeout = arguments.integer("limitCzasu") ?: 30
+private suspend fun invokeCliForMcp(arguments: JsonObject, launchArguments: List<String>): CallToolResult {
+    val cliArguments = launchArguments + mcpCliArguments(arguments)
+    val timeout = arguments.integer("limitCzasu") ?: CliArgs(launchArguments).positiveInt("timeout", 30)
     val result = runCliProcess(cliArguments, timeout)
     val text = (if (result.code == Exit.OK) result.stdout else result.stderr).trim()
         .ifEmpty { "Polecenie zakończyło się kodem ${result.code} bez odpowiedzi." }

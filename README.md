@@ -142,6 +142,20 @@ dzienniczek help
 dzienniczek capabilities --json
 ```
 
+## Czytelny widok w terminalu
+
+```sh
+dzienniczek grades --format table
+dzienniczek schedule --format table
+dzienniczek dashboard --format table
+COLUMNS=60 dzienniczek homework --format table
+dzienniczek grades --format plain
+```
+
+Tabele pokazują przedmiot, datę, ocenę lub termin zamiast technicznych identyfikatorów. Plan uwzględnia dane zastępstw. Długie treści są zawijane, a wąski terminal otrzymuje układ pionowy. Szerokość jest odczytywana z terminalu; `COLUMNS` pozwala ją nadpisać (awaryjnie 100 znaków). `plain` pokazuje wszystkie pola w układzie pionowym; JSON zachowuje strukturę API.
+
+Dla VULCAN i eduVULCAN bieżący okres jest wybierany na podstawie dat, także gdy zapisany profil ma nieaktualną flagę `Current`. `--period 1` wybiera pierwszy semestr najnowszego dostępnego roku; konkretny identyfikator okresu pozwala wskazać go dokładnie.
+
 ## MCP dla Codex i Claude Code
 
 Repozytorium zawiera gotowe konfiguracje:
@@ -151,7 +165,18 @@ Repozytorium zawiera gotowe konfiguracje:
 - [`.agents/skills/dzienniczek/SKILL.md`](.agents/skills/dzienniczek/SKILL.md) jako umiejętność repozytorium dla Codex;
 - [`.claude/skills/dzienniczek/SKILL.md`](.claude/skills/dzienniczek/SKILL.md) jako umiejętność projektu dla Claude Code.
 
-Po otwarciu repozytorium klient powinien wykryć serwer `dzienniczek`. Claude Code poprosi o zatwierdzenie projektu i serwera z `.mcp.json`. Skrypt startowy automatycznie zbuduje lokalną dystrybucję, jeśli jej brakuje lub kod źródłowy jest nowszy.
+Codex wczytuje `.codex/config.toml` dla zaufanego projektu. Otwórz katalog repozytorium, zatwierdź zaufanie i rozpocznij nową sesję po zmianie konfiguracji MCP. Serwer `dzienniczek` korzysta z lokalnego profilu CLI. Projekt zawiera także [AGENTS.md](AGENTS.md) z zasadami pracy i weryfikacji.
+
+Sprawdź wykrycie serwera i jego rzeczywisty start, także z podkatalogu:
+
+```sh
+codex mcp get dzienniczek --json
+python3 scripts/test-mcp.py --codex
+```
+
+Test używa pustej konfiguracji i nie pobiera danych ucznia. Konfiguracja projektu nie wymaga klucza OpenAI API. Zasady konfiguracji MCP opisuje [oficjalna dokumentacja Codex](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+ Claude Code poprosi o zatwierdzenie projektu i serwera z `.mcp.json`. Skrypt startowy automatycznie zbuduje lokalną dystrybucję, jeśli jej brakuje lub kod źródłowy jest nowszy.
 
 Serwer można też uruchomić ręcznie:
 
@@ -222,6 +247,18 @@ PATH=/opt/homebrew/opt/openjdk@17/bin:$PATH \
 ```
 
 CI wykonuje budowanie i testy na Ubuntu oraz macOS.
+
+Testy odczytu na już zalogowanym profilu uruchamiaj osobno:
+
+```sh
+python3 scripts/test-live.py --live
+# Opcjonalnie także lista jednej odebranej wiadomości:
+python3 scripts/test-live.py --live --messages
+```
+
+Skrypt sprawdza 20 przepływów na aktywnym profilu (21 z wiadomościami), bez logowania i zmian danych. Raportuje wyłącznie kody zakończenia, liczbę rekordów i czas. `--profile` i `--account` pozwalają wskazać profil oraz ucznia. Testów live nie uruchamia CI.
+
+Zakres i wyniki weryfikacji na macOS opisuje [raport testów](docs/TEST_REPORT.md).
 
 ## Rozwiązywanie problemów
 

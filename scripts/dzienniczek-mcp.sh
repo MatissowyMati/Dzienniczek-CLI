@@ -29,19 +29,22 @@ if [ "${java_major:-0}" -lt 17 ]; then
   exit 1
 fi
 
-needs_build=false
-if [ ! -x "$launcher" ]; then
-  needs_build=true
-elif [ "$project_dir/cli/build.gradle.kts" -nt "$launcher" ] || \
-     [ "$project_dir/gradle/libs.versions.toml" -nt "$launcher" ]; then
-  needs_build=true
-elif find "$project_dir/cli/src" -type f -newer "$launcher" -print -quit | grep -q .; then
-  needs_build=true
-fi
-
-if [ "$needs_build" = true ]; then
+# Sam znacznik czasu launchera nie wystarcza: Gradle może go zachować po zmianie kodu.
+# Suma obejmuje także usunięcia plików i nie przebudowuje serwera po zmianie samych testów.
+stamp="$project_dir/cli/build/mcp-source-checksum"
+source_checksum=$(
+  cd "$project_dir"
+  {
+    find cli/src/main -type f
+    printf '%s\n' build.gradle.kts settings.gradle.kts gradle.properties cli/build.gradle.kts \
+      gradle/libs.versions.toml gradle/wrapper/gradle-wrapper.properties
+  } | LC_ALL=C sort | while IFS= read -r source; do cksum "$source"; done | cksum
+)
+if [ ! -x "$launcher" ] || [ ! -f "$stamp" ] || [ "$(cat "$stamp")" != "$source_checksum" ]; then
   echo "Budowanie lokalnego serwera Dzienniczek MCP…" >&2
   (cd "$project_dir" && ./gradlew :cli:installDist --no-daemon --quiet 1>&2)
+  printf '%s\n' "$source_checksum" > "$stamp.tmp.$$"
+  mv "$stamp.tmp.$$" "$stamp"
 fi
 
 cd "$project_dir"
