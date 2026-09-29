@@ -31,6 +31,12 @@ class HumanOutputTest {
         assertFalse(text.contains('…'))
         assertTrue(text.lineSequence().all { it.length <= 80 })
     }
+    @Test fun timestampsInsideFreeTextDoNotRemoveFollowingContent() {
+        val content = "Termin 2026-10-01T08:00:00: przynieś podręcznik."
+        val data = buildJsonObject { put("Content", content) }
+        val text = renderHuman(data, CliArgs(listOf("homework", "--format", "plain")), 100)
+        assertTrue(text.contains(content))
+    }
     @Test fun plainOutputPreservesFieldsBeyondOldTenColumnLimit() {
         val rows = buildJsonArray { add(buildJsonObject { repeat(15) { put("pole$it", "wartość$it") } }) }
         val text = renderHuman(rows, CliArgs(listOf("events", "--format", "plain")), 80)

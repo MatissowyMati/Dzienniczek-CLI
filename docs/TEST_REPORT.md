@@ -12,7 +12,7 @@ Po poprawce wybór domyślny uwzględnia daty okresu. Numer semestru wybiera naj
 
 | Sprawdzenie | Wynik |
 | --- | --- |
-| Testy jednostkowe i regresyjne | 24 testy, 0 błędów, 0 pominięć |
+| Testy jednostkowe i regresyjne | 25 testów, 0 błędów, 0 pominięć |
 | Budowanie dystrybucji JVM i archiwum | `test`, `installDist`, `distTar` zakończone poprawnie |
 | Odczyty CLI na aktywnym profilu | 21/21 przepływów poprawnych |
 | Widoki rzeczywistych danych | 7 widoków × 3 szerokości (40, 80, 100), bez przekroczenia szerokości |

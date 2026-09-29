@@ -220,7 +220,7 @@ private fun humanText(element: JsonElement?): String = when (element) {
     is JsonPrimitive -> when (element.booleanOrNull) {
         true -> "tak"
         false -> "nie"
-        null -> element.content.replace(Regex("(\\d{4}-\\d{2}-\\d{2})T(\\d{2}:\\d{2}):\\d{2}.*"), "$1 $2")
+        null -> element.content.replace(Regex("^(\\d{4}-\\d{2}-\\d{2})T(\\d{2}:\\d{2}):\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})?$"), "$1 $2")
     }
     is JsonArray -> element.joinToString(", ") { humanText(it) }
     is JsonObject -> listOf("DisplayName", "Name", "nazwa", "displayName", "name").firstNotNullOfOrNull { key ->
