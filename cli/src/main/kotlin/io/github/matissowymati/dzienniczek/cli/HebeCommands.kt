@@ -182,14 +182,19 @@ private suspend fun messageDetails(id: String, args: CliArgs, ctx: HebeContext):
         if (login != null && password != null) {
             val api = PrometheusMessagesApi(ctx.profile.prometheusTenant ?: ctx.account.unit.symbol, login, password)
             api.initialize()
-            return encoded(api.getMessageDetails(id))
+            val effectiveKey = if (id.toIntOrNull() != null) {
+                val boxKey = box(ctx.account, args)
+                val all = api.getReceivedMessages(boxKey) + api.getSentMessages(boxKey) + api.getDeletedMessages(boxKey)
+                all.firstOrNull { it.id == id.toInt() }?.apiGlobalKey ?: id
+            } else id
+            return encoded(api.getMessageDetails(effectiveKey))
         }
     }
     val account = ctx.account
     val all = ctx.api.getReceivedMessages(account.unit.restUrl, box(account, args), account.pupil.id) +
         ctx.api.getSentMessages(account.unit.restUrl, box(account, args), account.pupil.id) +
         ctx.api.getDeletedMessages(account.unit.restUrl, box(account, args), account.pupil.id)
-    return encoded(all.firstOrNull { it.id == id } ?: throw CliError("Nie znaleziono wiadomości '$id'", Exit.API))
+    return encoded(all.firstOrNull { it.id == id || it.globalKey == id } ?: throw CliError("Nie znaleziono wiadomości '$id'", Exit.API))
 }
 
 private suspend fun push(subcommand: String?, args: CliArgs, api: DzienniczekApi, account: Account): JsonElement = when (subcommand) {
