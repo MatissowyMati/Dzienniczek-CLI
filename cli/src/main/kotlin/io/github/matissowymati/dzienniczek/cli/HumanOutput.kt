@@ -95,6 +95,27 @@ private fun humanColumns(row: JsonObject): List<HumanColumn>? = when {
         column("Data", "CreatedAt"), column("Przedmiot", "Column.Subject.Name"), column("Ocena", "Content"),
         column("Kategoria", "Column.Category.Name", "Column.Name"), column("Waga", "Column.Weight"), column("Komentarz", "Comment")
     )
+    "TimeSlot" in row && "DateAt" in row && ("ScheduleExtraId" in row || "ExtraDescription" in row) -> listOf(
+        column("Data", "DateAt"), column("Lekcja", "TimeSlot.Position"),
+        HumanColumn("Godziny") { r ->
+            val start = r.at("Substitution.TimeStart")?.takeUnless { it == JsonNull } ?: r.at("TimeSlot.Start")
+            val end = r.at("Substitution.TimeEnd")?.takeUnless { it == JsonNull } ?: r.at("TimeSlot.End")
+            "${humanText(start)}–${humanText(end)}"
+        },
+        column("Sala", "Substitution.Room.Code", "Room.Code"),
+        column("Nauczyciel", "Substitution.Teacher.DisplayName", "Teacher.DisplayName"),
+        HumanColumn("Treść") { r ->
+            listOf("ExtraDescription" to "Opis", "ScheduleDescription" to "Plan", "SchedulePupilDescription" to "Dla ucznia")
+                .mapNotNull { (key, label) ->
+                    r[key]?.takeUnless { it == JsonNull }?.let(::humanText)?.takeIf(String::isNotBlank)?.let { "$label: $it" }
+                }.joinToString("\n")
+        },
+        HumanColumn("Zmiana") { r -> (r["Substitution"] as? JsonObject)?.let { sub ->
+            listOf("PupilNote", "Reason", "TeacherAbsenceEffectName")
+                .mapNotNull { sub[it]?.takeUnless { it == JsonNull }?.let(::humanText)?.takeIf(String::isNotBlank) }
+                .distinct().joinToString("; ")
+        }.orEmpty() }
+    )
     "TimeSlot" in row && "DateAt" in row -> listOf(
         column("Data", "DateAt"), column("Lekcja", "Substitution.TimeSlot.Position", "TimeSlot.Position"),
         HumanColumn("Godziny") { r ->
@@ -133,10 +154,7 @@ private fun humanColumns(row: JsonObject): List<HumanColumn>? = when {
     )
     "StartAt" in row && "Current" in row && "Number" in row -> listOf(
         column("ID", "Id"), column("Semestr", "Number"), column("Od", "StartAt"), column("Do", "EndAt"),
-        HumanColumn("Bieżący") { r ->
-            val today = java.time.LocalDate.now().toString()
-            if (today >= humanText(r["StartAt"]) && today <= humanText(r["EndAt"])) "tak" else "nie"
-        }
+        column("Bieżący", "Current")
     )
     "temat" in row -> listOf(
         column("ID", "id"), column("Data", "data"), column("Temat", "temat"),
@@ -162,7 +180,8 @@ private fun renderRows(rows: List<JsonObject>, output: StringBuilder, width: Int
     }
     val ordered = when {
         "TimeSlot" in shape && "DateAt" in shape -> rows.sortedWith(compareBy<JsonObject> { humanText(it["DateAt"]) }
-            .thenBy { (it.at("TimeSlot.Position") as? JsonPrimitive)?.intOrNull ?: 0 })
+            .thenBy { (it.at("Substitution.TimeSlot.Position") as? JsonPrimitive)?.intOrNull
+                ?: (it.at("TimeSlot.Position") as? JsonPrimitive)?.intOrNull ?: 0 })
         "Column" in shape && "Content" in shape -> rows.sortedByDescending { humanText(it["CreatedAt"]) }
         "DeadlineAt" in shape -> rows.sortedBy { humanText(it["DeadlineAt"]) }
         else -> rows
