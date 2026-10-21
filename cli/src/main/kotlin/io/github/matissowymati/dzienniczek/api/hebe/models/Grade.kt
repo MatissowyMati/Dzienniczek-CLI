@@ -6,6 +6,7 @@ import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.UseSerializers
+import kotlinx.serialization.json.JsonElement
 
 @Serializable
 data class GradeCategory(
@@ -45,5 +46,6 @@ data class Grade(
     @SerialName("Creator") val creator: Employee,
     @SerialName("Modifier") val modifier: Employee,
     @SerialName("Column") val column: GradeColumn,
-    @SerialName("CorrectedGrade") val correctedGrade: String? = null
+    // API zwraca również zagnieżdżony obiekt oceny; zachowaj jego pełną treść w JSON i MCP.
+    @SerialName("CorrectedGrade") val correctedGrade: JsonElement? = null
 )
